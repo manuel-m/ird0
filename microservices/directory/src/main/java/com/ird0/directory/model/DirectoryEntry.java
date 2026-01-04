@@ -10,15 +10,15 @@ import lombok.Data;
 @Entity
 public class DirectoryEntry {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    private String name;
-    private String type;
-    private String email;
-    private String phone;
-    private String address;
+  private String name;
+  private String type;
+  private String email;
+  private String phone;
+  private String address;
 
-    private String additionalInfo;
+  private String additionalInfo;
 }

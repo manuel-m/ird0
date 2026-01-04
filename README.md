@@ -1,6 +1,6 @@
-# CLAUDE.md
+# IRD0
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+IRD demo project
 
 ## Project Overview
 
@@ -143,6 +143,39 @@ Run tests for directory microservice:
 mvn -f microservices/directory/pom.xml test
 ```
 
+### Code Formatting with Spotless
+
+The project uses Spotless with Google Java Format for consistent code formatting. Spotless is configured in the parent POM's `pluginManagement` section, providing a centralized configuration for all modules.
+
+**Check if code is properly formatted (from root):**
+```bash
+mvn spotless:check
+```
+
+**Check from a specific module:**
+```bash
+cd microservices/directory
+mvn spotless:check
+```
+
+**Automatically format all code (from root):**
+```bash
+mvn spotless:apply
+```
+
+**Configuration (managed in parent POM):**
+- Formatter: Google Java Format (style: GOOGLE)
+- Version: 1.19.2
+- Features enabled:
+  - Remove unused imports
+  - Trim trailing whitespace
+  - End files with newline
+
+**Best practices:**
+- Run `mvn spotless:apply` before committing code
+- CI/CD pipelines should run `mvn spotless:check` to enforce formatting
+- Configuration is centralized in the root pom.xml, inherited by all modules
+
 ### Docker Operations
 
 Build and run all services:
@@ -164,12 +197,65 @@ docker compose down
 
 ### Docker Build Details
 
-The Dockerfile uses multi-stage builds:
-1. **Build stage**: Maven build with JDK 21
-2. **Runtime stage**: Minimal Alpine-based JRE 21
-3. Config injection: `APP_YML` build arg selects which config file to use
+The Dockerfile uses multi-stage builds with optimized layer caching:
+
+**Build Stage:**
+1. **Copy POM files only** - Creates a cacheable layer for dependency metadata
+2. **Download dependencies** - `mvn dependency:resolve dependency:resolve-plugins`
+   - This layer is cached and reused across all 3 service builds
+   - Only invalidates when POM files change, not when source code changes
+3. **Copy source code** - Changes here don't invalidate the dependency cache
+4. **Build application** - Fast build since dependencies are already downloaded
+
+**Runtime Stage:**
+5. **Minimal Alpine-based JRE 21** - Small final image
+6. **Config injection** - `APP_YML` build arg selects which config file to use
+
+**Benefits of this approach:**
+- Maven dependencies downloaded only once (first build or when POMs change)
+- Subsequent builds reuse the cached dependency layer (~60-70 seconds saved per build)
+- All 3 services share the same dependency cache
+- Source code changes trigger fast rebuilds (only compilation, no downloads)
 
 ### Maven Build Configuration
+
+**Parent POM Plugin Management:**
+
+The root POM manages plugin versions and configurations centrally in `pluginManagement`:
+```xml
+<build>
+    <pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot.version}</version>
+            </plugin>
+
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>2.43.0</version>
+                <configuration>
+                    <java>
+                        <googleJavaFormat>
+                            <version>1.19.2</version>
+                            <style>GOOGLE</style>
+                        </googleJavaFormat>
+                        <removeUnusedImports />
+                        <trimTrailingWhitespace />
+                        <endWithNewline />
+                    </java>
+                </configuration>
+            </plugin>
+        </plugins>
+    </pluginManagement>
+</build>
+```
+
+This centralizes plugin versions and configurations, ensuring consistency across all modules and eliminating Maven warnings about missing plugin versions. Child modules can simply reference the plugins without repeating configuration.
+
+**Spring Boot Maven Plugin:**
 
 The Spring Boot Maven plugin is configured with the `repackage` execution goal:
 ```xml
