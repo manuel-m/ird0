@@ -1,0 +1,30 @@
+services:
+  policyholders:
+    build:
+      context: .
+      dockerfile: microservices/directory/Dockerfile
+      args:
+        APP_YML: policyholders.yml
+    image: directory-policyholders
+    ports:
+      - "8081:8081"
+
+  experts:
+    build:
+      context: .
+      dockerfile: microservices/directory/Dockerfile
+      args:
+        APP_YML: experts.yml
+    image: directory-experts
+    ports:
+      - "8082:8082"
+
+  providers:
+    build:
+      context: .
+      dockerfile: microservices/directory/Dockerfile
+      args:
+        APP_YML: providers.yml
+    image: directory-providers
+    ports:
+      - "8083:8083"

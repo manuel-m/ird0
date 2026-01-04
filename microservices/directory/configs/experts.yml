@@ -1,0 +1,18 @@
+server:
+  port: 8082
+
+directory:
+  api:
+    base-path: /api/experts
+
+spring:
+  datasource:
+    url: jdbc:sqlite:./experts.sqlite
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.community.dialect.SQLiteDialect
