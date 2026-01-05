@@ -48,21 +48,27 @@ Common configuration in `application.yml` includes:
 ird0/
 ├── pom.xml                                   # Root POM (parent)
 ├── docker-compose.yml                         # Multi-instance deployment
-└── microservices/
-    └── directory/
-        ├── pom.xml                           # Directory microservice POM
-        ├── Dockerfile                         # Multi-stage build
-        ├── configs/                          # Configuration files
-        │   ├── application.yml                # Common shared configuration
-        │   ├── policyholders.yml              # Instance-specific overrides
-        │   ├── experts.yml                    # Instance-specific overrides
-        │   └── providers.yml                  # Instance-specific overrides
-        └── src/main/java/com/ird0/directory/
-            ├── DirectoryApplication.java          # Main Spring Boot entry point
-            ├── controller/DirectoryEntryController.java
-            ├── model/DirectoryEntry.java
-            ├── repository/DirectoryEntryRepository.java
-            └── service/DirectoryEntryService.java
+├── microservices/
+│   └── directory/
+│       ├── pom.xml                           # Directory microservice POM
+│       ├── Dockerfile                         # Multi-stage build
+│       ├── configs/                          # Configuration files
+│       │   ├── application.yml                # Common shared configuration
+│       │   ├── policyholders.yml              # Instance-specific overrides
+│       │   ├── experts.yml                    # Instance-specific overrides
+│       │   └── providers.yml                  # Instance-specific overrides
+│       └── src/main/java/com/ird0/directory/
+│           ├── DirectoryApplication.java          # Main Spring Boot entry point
+│           ├── controller/DirectoryEntryController.java
+│           ├── model/DirectoryEntry.java
+│           ├── repository/DirectoryEntryRepository.java
+│           └── service/DirectoryEntryService.java
+└── utilities/
+    └── directory-data-generator/             # Test data generator CLI
+        ├── pom.xml                           # Data generator module POM
+        └── src/main/java/com/ird0/utilities/datagen/
+            ├── DataGeneratorCLI.java          # CLI entry point
+            └── PolicyholderDataGenerator.java # Data generation logic
 ```
 
 ## Common Development Commands
@@ -219,6 +225,121 @@ Stop all services:
 docker compose down
 ```
 
+## Test Data Generator Utility
+
+The project includes a CLI utility (`utilities/directory-data-generator`) to generate realistic fake policyholder data for testing and development purposes.
+
+### Overview
+
+The directory-data-generator is a standalone Java CLI application that:
+- Generates realistic fake data using the Datafaker library
+- Uses the actual `DirectoryEntry` model from the directory service (no duplication)
+- Outputs CSV format compatible with the directory service
+- Supports configurable record count with sensible defaults
+
+### Building the Data Generator
+
+Build the utility along with the entire project:
+```bash
+mvn clean package
+```
+
+Or build only the data generator module:
+```bash
+mvn -f utilities/directory-data-generator/pom.xml clean package
+```
+
+**Output:** `utilities/directory-data-generator/target/directory-data-generator.jar` (69MB fat JAR)
+
+### Using the Data Generator
+
+**Basic usage (generates 100 records by default):**
+```bash
+java -jar utilities/directory-data-generator/target/directory-data-generator.jar
+```
+
+**Generate specific number of records:**
+```bash
+java -jar utilities/directory-data-generator/target/directory-data-generator.jar 500
+```
+
+**Custom output file:**
+```bash
+java -jar utilities/directory-data-generator/target/directory-data-generator.jar 200 -o custom-data.csv
+```
+
+**Show help:**
+```bash
+java -jar utilities/directory-data-generator/target/directory-data-generator.jar --help
+```
+
+### Generated Data Format
+
+The utility generates CSV files with the following structure:
+```csv
+name,type,email,phone,address,additionalInfo
+"John Doe",individual,john.doe@example.com,555-1234,"123 Main St, Springfield, IL",Account since 1985-03-15
+"Smith Family",family,smith@example.com,555-5678,"456 Oak Ave, Portland, OR",Members: 4
+"Acme Corporation",corporate,acme.corporation@example.com,555-9012,"789 Business Blvd, NY","Industry: Technology, Employees: 250"
+```
+
+**Field Details:**
+- **name**: Type-specific realistic names (person, family, or company)
+- **type**: Randomly selected from `individual`, `family`, `corporate`
+- **email**: Generated based on the name
+- **phone**: Realistic phone numbers
+- **address**: Full street addresses
+- **additionalInfo**: Type-specific metadata:
+  - `individual`: Account creation date
+  - `family`: Number of family members
+  - `corporate`: Industry and employee count
+
+**Note:** The CSV does not include the `id` field as it's auto-generated by the database.
+
+### Importing Generated Data
+
+The CSV can be imported using various methods:
+
+**Option 1: Manual API calls (for small datasets)**
+```bash
+# Skip the header line and POST each record
+tail -n +2 policyholders.csv | while IFS=, read -r name type email phone address additionalInfo; do
+  curl -X POST http://localhost:8081/api/policyholders \
+    -H "Content-Type: application/json" \
+    -d "{\"name\":$name,\"type\":$type,\"email\":$email,\"phone\":$phone,\"address\":$address,\"additionalInfo\":$additionalInfo}"
+done
+```
+
+**Option 2: Direct SQLite import**
+```bash
+sqlite3 microservices/directory/policyholders.sqlite <<EOF
+.mode csv
+.import policyholders.csv directory_entry
+EOF
+```
+
+**Option 3: Create a bulk import endpoint** (recommended for large datasets)
+Consider adding a POST endpoint that accepts CSV files for bulk import.
+
+### Technical Details
+
+**Architecture:**
+- Plain Java CLI application (not Spring Boot)
+- Uses Picocli for CLI argument parsing with built-in help
+- Uses Apache Commons CSV for robust CSV writing (handles special characters)
+- Depends on the `directory` module to use `DirectoryEntry` model directly
+
+**Dependencies:**
+- `net.datafaker:datafaker:2.1.0` - Fake data generation
+- `org.apache.commons:commons-csv:1.10.0` - CSV writing
+- `info.picocli:picocli:4.7.5` - CLI parsing
+- `com.ird0:directory:1.0.0` - DirectoryEntry model
+
+**Build Configuration:**
+- Maven Shade Plugin creates an executable fat JAR with all dependencies
+- Final JAR includes Spring Boot libraries (needed for DirectoryEntry model)
+- JAR size: ~69MB (due to transitive dependencies from directory module)
+
 ### Docker Build Details
 
 The Dockerfile uses multi-stage builds with optimized layer caching:
@@ -281,7 +402,7 @@ This centralizes plugin versions and configurations, ensuring consistency across
 
 **Spring Boot Maven Plugin:**
 
-The Spring Boot Maven plugin is configured with the `repackage` execution goal:
+The Spring Boot Maven plugin is configured with the `repackage` execution goal and a classifier:
 ```xml
 <plugin>
     <groupId>org.springframework.boot</groupId>
@@ -293,16 +414,22 @@ The Spring Boot Maven plugin is configured with the `repackage` execution goal:
             </goals>
         </execution>
     </executions>
+    <configuration>
+        <classifier>exec</classifier>
+    </configuration>
 </plugin>
 ```
 
-This configuration ensures that `mvn package` produces an executable "fat JAR" (~62MB) containing:
-- Application classes
-- All dependencies (Spring Boot, Hibernate, SQLite, etc.)
-- Embedded Tomcat server
-- Custom Spring Boot classloader
+This configuration produces **two JAR files**:
+1. **`directory-1.0.0.jar`** (~8KB) - Standard JAR with compiled classes only
+   - Used as a Maven dependency by other modules (e.g., directory-data-generator)
+   - Contains only application code, not dependencies
+2. **`directory-1.0.0-exec.jar`** (~65MB) - Executable Spring Boot "fat JAR"
+   - Contains all dependencies (Spring Boot, Hibernate, SQLite, etc.)
+   - Contains embedded Tomcat server
+   - Can be run standalone with `java -jar`
 
-Without this configuration, Maven would only produce a standard JAR (~8KB) with compiled classes, which cannot run standalone.
+The `classifier` configuration is crucial for allowing the directory module to be used as a dependency while still producing an executable JAR.
 
 ## Key Implementation Notes
 
