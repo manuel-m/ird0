@@ -26,7 +26,10 @@ WORKDIR /app
 # Copy the jar from the build stage
 COPY --from=build /app/microservices/directory/target/directory-1.0.0.jar app.jar
 
-# Copy the specific config file
-COPY microservices/directory/configs/${APP_YML} application.yml
+# Copy common configuration
+COPY microservices/directory/configs/application.yml application.yml
 
-ENTRYPOINT ["java", "-jar", "app.jar", "--spring.config.location=file:/app/application.yml"]
+# Copy instance-specific configuration
+COPY microservices/directory/configs/${APP_YML} instance.yml
+
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.config.location=file:/app/application.yml,file:/app/instance.yml"]

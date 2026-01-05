@@ -17,20 +17,26 @@ The project uses a unique architecture where a single microservice (`microservic
 - **Providers Service**: Port 8083, API path `/api/providers`, SQLite database `providers.sqlite`
 
 Each instance is configured via YAML files in `microservices/directory/configs/`:
-- `policyholders.yml`
-- `experts.yml`
-- `providers.yml`
+- `application.yml` - Common configuration shared across all instances (JPA, SQLite dialect, Actuator)
+- `policyholders.yml` - Instance-specific overrides (port 8081, database file, API path)
+- `experts.yml` - Instance-specific overrides (port 8082, database file, API path)
+- `providers.yml` - Instance-specific overrides (port 8083, database file, API path)
 
-The configuration files control:
+The instance-specific configuration files control:
 - Server port (`server.port`)
 - API base path (`directory.api.base-path`)
 - SQLite database file path (`spring.datasource.url`)
+
+Common configuration in `application.yml` includes:
+- JPA/Hibernate settings (DDL auto-update, SQL logging, SQLite dialect)
+- Spring Boot Actuator endpoints (health, info, metrics)
 
 ### Technology Stack
 
 - Java 21
 - Spring Boot 3.5.0
 - Spring Data JPA with Hibernate
+- Spring Boot Actuator (health, metrics, info endpoints)
 - SQLite database (separate instance per service)
 - Lombok for boilerplate reduction
 - Maven for build management
@@ -46,10 +52,11 @@ ird0/
     └── directory/
         ├── pom.xml                           # Directory microservice POM
         ├── Dockerfile                         # Multi-stage build
-        ├── configs/                          # Instance-specific configs
-        │   ├── policyholders.yml
-        │   ├── experts.yml
-        │   └── providers.yml
+        ├── configs/                          # Configuration files
+        │   ├── application.yml                # Common shared configuration
+        │   ├── policyholders.yml              # Instance-specific overrides
+        │   ├── experts.yml                    # Instance-specific overrides
+        │   └── providers.yml                  # Instance-specific overrides
         └── src/main/java/com/ird0/directory/
             ├── DirectoryApplication.java          # Main Spring Boot entry point
             ├── controller/DirectoryEntryController.java
@@ -84,19 +91,19 @@ Run a single service instance locally for development and debugging:
 **Policyholders service (port 8081):**
 ```bash
 cd microservices/directory
-mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/policyholders.yml"
+mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/policyholders.yml"
 ```
 
 **Experts service (port 8082):**
 ```bash
 cd microservices/directory
-mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/experts.yml"
+mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/experts.yml"
 ```
 
 **Providers service (port 8083):**
 ```bash
 cd microservices/directory
-mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/providers.yml"
+mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/providers.yml"
 ```
 
 The service will:
@@ -130,6 +137,23 @@ curl -X DELETE http://localhost:8081/api/policyholders/1
 ```
 
 Replace port 8081 and path `/api/policyholders` with the appropriate values for experts (8082, `/api/experts`) or providers (8083, `/api/providers`).
+
+**Testing Actuator endpoints:**
+```bash
+# Health check
+curl http://localhost:8081/actuator/health
+
+# Application info
+curl http://localhost:8081/actuator/info
+
+# Metrics
+curl http://localhost:8081/actuator/metrics
+
+# List all available endpoints
+curl http://localhost:8081/actuator
+```
+
+Replace port 8081 with 8082 for experts or 8083 for providers.
 
 ### Run Tests
 
