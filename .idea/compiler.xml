@@ -8,6 +8,17 @@
         <outputRelativeToContentRoot value="true" />
         <module name="directory" />
       </profile>
+      <profile name="Annotation profile for insurance-platform" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.5/picocli-codegen-4.7.5.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.5/picocli-4.7.5.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
+        </processorPath>
+        <module name="data-generator" />
+      </profile>
     </annotationProcessing>
   </component>
 </project>

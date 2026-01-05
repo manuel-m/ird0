@@ -11,12 +11,16 @@
 
     <modules>
         <module>microservices/directory</module>
+        <module>utilities/directory-data-generator</module>
     </modules>
 
     <properties>
         <java.version>21</java.version>
         <spring.boot.version>3.5.0</spring.boot.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
+        <datafaker.version>2.1.0</datafaker.version>
+        <commons-csv.version>1.10.0</commons-csv.version>
+        <picocli.version>4.7.5</picocli.version>
     </properties>
 
     <dependencyManagement>
@@ -27,6 +31,24 @@
                 <version>${spring.boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>net.datafaker</groupId>
+                <artifactId>datafaker</artifactId>
+                <version>${datafaker.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-csv</artifactId>
+                <version>${commons-csv.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli</artifactId>
+                <version>${picocli.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
