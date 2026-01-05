@@ -23,8 +23,8 @@ FROM eclipse-temurin:21-jdk-alpine
 ARG APP_YML=application.yml
 WORKDIR /app
 
-# Copy the jar from the build stage
-COPY --from=build /app/microservices/directory/target/directory-1.0.0.jar app.jar
+# Copy the executable jar from the build stage
+COPY --from=build /app/microservices/directory/target/directory-1.0.0-exec.jar app.jar
 
 # Copy common configuration
 COPY microservices/directory/configs/application.yml application.yml

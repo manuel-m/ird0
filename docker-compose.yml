@@ -28,3 +28,20 @@ services:
     image: directory-providers
     ports:
       - "8083:8083"
+
+  sftp-server:
+    build:
+      context: .
+      dockerfile: microservices/sftp-server/Dockerfile
+      args:
+        APP_YML: sftp.yml
+    image: sftp-server
+    ports:
+      - "2222:2222"  # SFTP port
+      - "9090:9090"  # Management/actuator port
+    environment:
+      - SFTP_DATA_DIR=/app/data
+      - SFTP_HOST_KEY_PATH=/app/keys/hostkey.pem
+    volumes:
+      - ./data:/app/data:ro  # Mount data directory as read-only
+      - ./keys:/app/keys      # Mount keys directory for host key persistence

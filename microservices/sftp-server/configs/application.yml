@@ -1,0 +1,24 @@
+# Common configuration for SFTP server
+
+spring:
+  application:
+    name: sftp-server
+    
+  main:
+    keep-alive: true  # Keep application running
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+  server:
+    port: 9090  # Management port
+
+logging:
+  level:
+    com.ird0.sftp: INFO
+    org.apache.sshd: INFO

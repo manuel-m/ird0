@@ -4,7 +4,10 @@ IRD demo project
 
 ## Project Overview
 
-This is an insurance platform microservices architecture built with Spring Boot 3.5.0 and Java 21. The project uses a single shared microservice codebase that deploys multiple instances with different configurations to create separate directory services for different entity types.
+This is an insurance platform microservices architecture built with Spring Boot 3.5.0 and Java 21. The project includes:
+1. **Directory Service** - Multi-instance REST API for managing policyholders, experts, and providers
+2. **SFTP Server** - Secure file transfer service for exposing policyholder CSV files via SFTP protocol
+3. **Data Generator Utility** - CLI tool for generating realistic test data
 
 ## Architecture
 
@@ -31,13 +34,29 @@ Common configuration in `application.yml` includes:
 - JPA/Hibernate settings (DDL auto-update, SQL logging, SQLite dialect)
 - Spring Boot Actuator endpoints (health, info, metrics)
 
+### Microservices
+
+#### Directory Service (Multi-Instance)
+- **Ports**: 8081 (policyholders), 8082 (experts), 8083 (providers)
+- **Protocol**: REST API (HTTP)
+- **Database**: SQLite (separate database per instance)
+- **Purpose**: CRUD operations for directory entries
+
+#### SFTP Server
+- **Port**: 2222 (SFTP), 9090 (management/actuator)
+- **Protocol**: SFTP (SSH File Transfer Protocol)
+- **Authentication**: SSH public key only
+- **Access**: Read-only file system
+- **Purpose**: Expose policyholder CSV files to external consumers
+
 ### Technology Stack
 
 - Java 21
 - Spring Boot 3.5.0
-- Spring Data JPA with Hibernate
+- Spring Data JPA with Hibernate (directory service)
+- Apache MINA SSHD 2.12.0 (SFTP server)
 - Spring Boot Actuator (health, metrics, info endpoints)
-- SQLite database (separate instance per service)
+- SQLite database (directory service only)
 - Lombok for boilerplate reduction
 - Maven for build management
 - Docker multi-stage builds
@@ -47,22 +66,40 @@ Common configuration in `application.yml` includes:
 ```
 ird0/
 ├── pom.xml                                   # Root POM (parent)
-├── docker-compose.yml                         # Multi-instance deployment
+├── docker-compose.yml                         # Multi-service deployment
 ├── microservices/
-│   └── directory/
-│       ├── pom.xml                           # Directory microservice POM
+│   ├── directory/
+│   │   ├── pom.xml                           # Directory microservice POM
+│   │   ├── Dockerfile                         # Multi-stage build
+│   │   ├── configs/                          # Configuration files
+│   │   │   ├── application.yml                # Common shared configuration
+│   │   │   ├── policyholders.yml              # Instance-specific overrides
+│   │   │   ├── experts.yml                    # Instance-specific overrides
+│   │   │   └── providers.yml                  # Instance-specific overrides
+│   │   └── src/main/java/com/ird0/directory/
+│   │       ├── DirectoryApplication.java          # Main Spring Boot entry point
+│   │       ├── controller/DirectoryEntryController.java
+│   │       ├── model/DirectoryEntry.java
+│   │       ├── repository/DirectoryEntryRepository.java
+│   │       └── service/DirectoryEntryService.java
+│   └── sftp-server/
+│       ├── pom.xml                           # SFTP server module POM
 │       ├── Dockerfile                         # Multi-stage build
 │       ├── configs/                          # Configuration files
-│       │   ├── application.yml                # Common shared configuration
-│       │   ├── policyholders.yml              # Instance-specific overrides
-│       │   ├── experts.yml                    # Instance-specific overrides
-│       │   └── providers.yml                  # Instance-specific overrides
-│       └── src/main/java/com/ird0/directory/
-│           ├── DirectoryApplication.java          # Main Spring Boot entry point
-│           ├── controller/DirectoryEntryController.java
-│           ├── model/DirectoryEntry.java
-│           ├── repository/DirectoryEntryRepository.java
-│           └── service/DirectoryEntryService.java
+│       │   ├── application.yml                # Common configuration
+│       │   └── sftp.yml                       # SFTP-specific configuration
+│       └── src/main/java/com/ird0/sftp/
+│           ├── SftpServerApplication.java         # Main Spring Boot entry point
+│           ├── config/
+│           │   ├── SftpProperties.java            # Configuration properties
+│           │   └── SftpServerConfig.java          # Apache MINA SSHD setup
+│           ├── auth/
+│           │   └── PublicKeyAuthenticator.java    # SSH key authentication
+│           ├── filesystem/
+│           │   ├── ReadOnlyFileSystemFactory.java # File system factory
+│           │   └── CsvVirtualFileSystemView.java  # Read-only wrapper
+│           └── lifecycle/
+│               └── SftpServerLifecycle.java       # Server lifecycle
 └── utilities/
     └── directory-data-generator/             # Test data generator CLI
         ├── pom.xml                           # Data generator module POM
@@ -339,6 +376,223 @@ Consider adding a POST endpoint that accepts CSV files for bulk import.
 - Maven Shade Plugin creates an executable fat JAR with all dependencies
 - Final JAR includes Spring Boot libraries (needed for DirectoryEntry model)
 - JAR size: ~69MB (due to transitive dependencies from directory module)
+
+## SFTP Server
+
+The project includes an SFTP server microservice (`microservices/sftp-server`) that exposes CSV files via SFTP protocol for external consumers.
+
+### Overview
+
+The SFTP server is a Spring Boot application that:
+- Exposes files via SFTP protocol on port 2222
+- Provides read-only access using SSH public key authentication
+- Serves CSV files from a configured data directory (provided via volume mount)
+- Includes health monitoring via Spring Boot Actuator on port 9090
+- Uses Apache MINA SSHD 2.12.0 for embedded SFTP server functionality
+
+### Building the SFTP Server
+
+Build the entire project including SFTP server:
+```bash
+mvn clean package
+```
+
+Build SFTP server only:
+```bash
+mvn -f microservices/sftp-server/pom.xml clean package
+```
+
+**Output:**
+- `microservices/sftp-server/target/sftp-server-1.0.0.jar` (~9KB - normal JAR)
+- `microservices/sftp-server/target/sftp-server-1.0.0-exec.jar` (~35MB - executable JAR)
+
+### Configuration
+
+The SFTP server uses two configuration files:
+
+**`configs/application.yml`** (common settings):
+- Application name and logging levels
+- Actuator endpoints configuration (health, info, metrics)
+- Management server port (9090)
+- Keep-alive setting to prevent application shutdown
+
+**`configs/sftp.yml`** (SFTP-specific with environment variable support):
+```yaml
+sftp:
+  server:
+    port: 2222                                      # SFTP server port
+    data-directory: ${SFTP_DATA_DIR:./data}         # Directory containing CSV files
+    host-key-path: ${SFTP_HOST_KEY_PATH:./keys/hostkey.pem} # Auto-generated RSA host key
+    max-sessions: 10                                # Max concurrent connections
+    session-timeout: 900000                         # 15 minutes
+
+  users:
+    - username: policyholder-consumer
+      public-key: |
+        ssh-rsa AAAAB3NzaC1yc2E... (SSH public key)
+```
+
+**Environment Variable Support:**
+- `SFTP_DATA_DIR`: Defaults to `./data` for local development, set to `/app/data` in Docker
+- `SFTP_HOST_KEY_PATH`: Defaults to `./keys/hostkey.pem` for local development, set to `/app/keys/hostkey.pem` in Docker
+
+This unified configuration works for both local development (using defaults) and Docker (using environment variables).
+
+### Setting Up SSH Keys
+
+Before running the SFTP server, you need to configure SSH public key authentication:
+
+**Generate SSH key pair:**
+```bash
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/sftp_test_key -N ""
+```
+
+**Get the public key:**
+```bash
+cat ~/.ssh/sftp_test_key.pub
+```
+
+**Update configuration:**
+Edit `microservices/sftp-server/configs/sftp.yml` and replace the placeholder public key with your actual SSH public key.
+
+### Running the SFTP Server
+
+**Run with Docker Compose:**
+```bash
+# Prepare data directory
+mkdir -p data keys
+
+# Place CSV files in data directory
+cp policyholders.csv data/
+
+# Build and start SFTP server
+docker compose up --build sftp-server
+
+# Run in background
+docker compose up -d sftp-server
+
+# View logs
+docker compose logs -f sftp-server
+```
+
+**Run locally (development):**
+```bash
+cd microservices/sftp-server
+mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/sftp.yml"
+```
+
+### Testing the SFTP Server
+
+**Connect via SFTP client:**
+```bash
+# Connect to SFTP server
+sftp -P 2222 -i ~/.ssh/sftp_test_key policyholder-consumer@localhost
+
+# SFTP commands:
+sftp> ls                           # List files
+sftp> get policyholders.csv        # Download file
+sftp> put test.txt                 # Should fail (read-only)
+sftp> rm policyholders.csv         # Should fail (read-only)
+sftp> quit                         # Disconnect
+```
+
+**Download with SCP:**
+```bash
+scp -P 2222 -i ~/.ssh/sftp_test_key \
+  policyholder-consumer@localhost:policyholders.csv \
+  ./downloaded.csv
+```
+
+**Check health:**
+```bash
+# Health check
+curl http://localhost:9090/actuator/health
+
+# Metrics
+curl http://localhost:9090/actuator/metrics
+
+# List all actuator endpoints
+curl http://localhost:9090/actuator
+```
+
+### Architecture Details
+
+**Authentication:**
+- SSH public key authentication only (no passwords)
+- Multiple users supported with different public keys
+- Keys configured in `sftp.yml`
+
+**File System:**
+- Read-only virtual file system prevents uploads, modifications, deletions
+- Root directory configured via `data-directory` setting
+- Normalized paths prevent directory traversal attacks
+
+**Security Features:**
+1. Public key authentication only
+2. Read-only access enforced at file system level
+3. Persistent RSA host key for server verification
+4. Configurable session limits and timeouts
+5. Path normalization prevents traversal attacks
+6. Comprehensive logging of authentication attempts and file access
+
+**Technical Implementation:**
+- Uses Apache MINA SSHD 2.12.0 for embedded SFTP server
+- Custom `FileSystemFactory` provides read-only file system per session
+- `PublickeyAuthenticator` validates SSH keys against configured users
+- Server lifecycle managed via `@PostConstruct` and `@PreDestroy`
+- No web server (uses `spring-boot-starter`, not `spring-boot-starter-web`)
+
+### Docker Configuration
+
+The SFTP server is integrated into docker-compose.yml:
+
+```yaml
+sftp-server:
+  build:
+    context: .
+    dockerfile: microservices/sftp-server/Dockerfile
+    args:
+      APP_YML: sftp.yml
+  image: sftp-server
+  ports:
+    - "2222:2222"  # SFTP port
+    - "9090:9090"  # Management/actuator port
+  environment:
+    - SFTP_DATA_DIR=/app/data
+    - SFTP_HOST_KEY_PATH=/app/keys/hostkey.pem
+  volumes:
+    - ./data:/app/data:ro   # Read-only CSV files
+    - ./keys:/app/keys       # Persistent host key
+```
+
+**Environment Variables:**
+- `SFTP_DATA_DIR=/app/data` - Override default data directory for Docker
+- `SFTP_HOST_KEY_PATH=/app/keys/hostkey.pem` - Override default host key path for Docker
+
+**Volume Mounts:**
+- `./data:/app/data:ro` - Mounts data directory as read-only, containing CSV files
+- `./keys:/app/keys` - Persistent storage for auto-generated RSA host key
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Connection refused | Verify server started: `docker compose ps`, check logs with `docker compose logs sftp-server` |
+| Authentication failed | Verify public key in `sftp.yml` matches your SSH key (`cat ~/.ssh/sftp_test_key.pub`) |
+| File not found | Check data volume mount: `docker compose exec sftp-server ls /app/data` |
+| Permission denied (read) | Check file permissions in data directory |
+| Permission denied (write) | Expected - server is read-only by design |
+| Host key changed warning | Host key was regenerated. Remove old key from `~/.ssh/known_hosts` |
+
+### Data Flow
+
+```
+External System → [Generate CSV] → data/policyholders.csv
+                                           ↓
+                                    SFTP Server (port 2222)
+                                           ↓
+                              External Consumers (SFTP clients)
+```
 
 ### Docker Build Details
 

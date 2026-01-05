@@ -7,6 +7,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="directory" />
+        <module name="sftp-server" />
       </profile>
       <profile name="Annotation profile for insurance-platform" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
