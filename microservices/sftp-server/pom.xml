@@ -38,6 +38,12 @@
             <artifactId>sshd-sftp</artifactId>
         </dependency>
 
+        <!-- Apache MINA SSHD OpenSSH support (includes Ed25519) -->
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-openpgp</artifactId>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

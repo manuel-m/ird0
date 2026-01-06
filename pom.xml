@@ -64,6 +64,12 @@
                 <artifactId>sshd-sftp</artifactId>
                 <version>${sshd.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.apache.sshd</groupId>
+                <artifactId>sshd-openpgp</artifactId>
+                <version>${sshd.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

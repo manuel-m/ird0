@@ -15,15 +15,11 @@ sftp:
     # Host key configuration (defaults to ./keys/hostkey.pem for local dev)
     host-key-path: ${SFTP_HOST_KEY_PATH:./keys/hostkey.pem}
 
+    # Authorized keys file (defaults to ./keys/authorized_keys for local dev)
+    authorized-keys-path: ${SFTP_AUTHORIZED_KEYS_PATH:./keys/authorized_keys}
+
     # Maximum number of concurrent SFTP sessions
     max-sessions: 10
 
     # Session timeout in milliseconds (15 minutes)
     session-timeout: 900000
-
-  # User authentication configuration
-  # Replace with actual SSH public keys
-  users:
-    - username: policyholder-consumer
-      public-key: |
-        ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDCHF45HADwx04zKn88aZjKHOffAEFE5zOF9RchW7R2T3I1rgoqdmWy0hlxNsXPiF07PetTANq31O9q6pYndwVt31bHfUm+ZvO1GqzXBf9WSr8+dnzzx39Jzt1cnQ1eb6mi4MsJ4nJ/5WVJQB0N6slhEFSY0t85XjsYrU0T6W5x57TXvPTQvCOLUb7ZR7TXUnJ1cG4z28f2SNVfobO6Kk3S2dl08xDhxh+RArO3A0yaJkgaLZfTjfjBbFRkzYIM9p+ZUgFtPh1WHOiksYQ9Kc0AhlSPTq8J5g3npET5nucsuzKxOSjtPeP1znGPnLlgN5rYIaEs5yCSgptQ+8qFnuJ3vBaJSMlT4v4YStfWpfINMdXomXvg+Y7YG1rdQDArr3RS8lJP9mCPJbTj6WtN7vWcCKhTaeH1aSqnK0nRf29mvNWXwTVLOj9f8kDIzWMHqxICq+SzbrVDUSWlROFkRTj5WoW0grjiBWtItjGfBxvSCvJNziCjAxw1PkNAUVN6S1z+0gPwqPA3sG9LODYf7c3qOmTIeqfsoJiRB600jy55dUI8IqB8D+pUbw3SKjOA1RoSzrJhikyYzx+kLWWqz7lR2vfAkUkVg+VD8O4kCcRrHNVB+COFSfPUHq0z5L1ZXDEWzCmpmEtkN6aJtffqJanG4ryG6VZErKEDEM/yGdOTew==

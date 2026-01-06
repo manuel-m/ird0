@@ -423,37 +423,66 @@ sftp:
     port: 2222                                      # SFTP server port
     data-directory: ${SFTP_DATA_DIR:./data}         # Directory containing CSV files
     host-key-path: ${SFTP_HOST_KEY_PATH:./keys/hostkey.pem} # Auto-generated RSA host key
+    authorized-keys-path: ${SFTP_AUTHORIZED_KEYS_PATH:./keys/authorized_keys} # SSH public keys file
     max-sessions: 10                                # Max concurrent connections
     session-timeout: 900000                         # 15 minutes
-
-  users:
-    - username: policyholder-consumer
-      public-key: |
-        ssh-rsa AAAAB3NzaC1yc2E... (SSH public key)
 ```
 
 **Environment Variable Support:**
 - `SFTP_DATA_DIR`: Defaults to `./data` for local development, set to `/app/data` in Docker
 - `SFTP_HOST_KEY_PATH`: Defaults to `./keys/hostkey.pem` for local development, set to `/app/keys/hostkey.pem` in Docker
+- `SFTP_AUTHORIZED_KEYS_PATH`: Defaults to `./keys/authorized_keys` for local development, set to `/app/keys/authorized_keys` in Docker
 
 This unified configuration works for both local development (using defaults) and Docker (using environment variables).
 
 ### Setting Up SSH Keys
 
-Before running the SFTP server, you need to configure SSH public key authentication:
+Before running the SFTP server, you need to configure SSH public key authentication using the `authorized_keys` file:
+
+**Important:** Currently, only RSA keys are fully supported. Ed25519 keys fail with "No decoder available" error due to a limitation in Apache SSHD 2.12.0.
 
 **Generate SSH key pair:**
 ```bash
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/sftp_test_key -N ""
+# Generate RSA key (recommended, fully supported)
+ssh-keygen -t rsa -b 2048 -f ~/.ssh/sftp_test_key -N ""
+
+# The key will be generated without a comment, you'll add the username manually
 ```
 
-**Get the public key:**
+**Create authorized_keys file:**
 ```bash
-cat ~/.ssh/sftp_test_key.pub
+# Create keys directory if it doesn't exist
+mkdir -p keys
+
+# Format the public key with username in the third field
+awk '{print $1" "$2" your-username"}' ~/.ssh/sftp_test_key.pub > keys/authorized_keys
+
+# Or create manually by editing the file
+# Format: <key-type> <key-data> <username>
 ```
 
-**Update configuration:**
-Edit `microservices/sftp-server/configs/sftp.yml` and replace the placeholder public key with your actual SSH public key.
+**File format:**
+The `authorized_keys` file format is: `<key-type> <key-data> <username>`
+
+Each line contains three space-separated fields:
+```
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ... policyholder-consumer
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDiff... data-analyst
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCano... backup-service
+```
+
+**Important notes:**
+- The third field is the username (not user@host format)
+- Comments start with `#`
+- Empty lines are ignored
+- Multiple users can be added, one per line
+
+**Set proper permissions (recommended):**
+```bash
+chmod 600 keys/authorized_keys
+```
+
+See `keys/authorized_keys.example` for a documented example file.
 
 ### Running the SFTP Server
 
@@ -477,16 +506,30 @@ docker compose logs -f sftp-server
 
 **Run locally (development):**
 ```bash
+# Option 1: Run from project root using environment variables (recommended)
+SFTP_DATA_DIR=./data \
+SFTP_HOST_KEY_PATH=./keys/hostkey.pem \
+SFTP_AUTHORIZED_KEYS_PATH=./keys/authorized_keys \
+mvn -f microservices/sftp-server/pom.xml spring-boot:run \
+  -Dspring-boot.run.arguments="--spring.config.location=file:microservices/sftp-server/configs/application.yml,file:microservices/sftp-server/configs/sftp.yml"
+
+# Option 2: Run from microservices/sftp-server using relative paths to root
 cd microservices/sftp-server
-mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/sftp.yml"
+SFTP_DATA_DIR=../../data \
+SFTP_HOST_KEY_PATH=../../keys/hostkey.pem \
+SFTP_AUTHORIZED_KEYS_PATH=../../keys/authorized_keys \
+mvn spring-boot:run \
+  -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/sftp.yml"
 ```
+
+**Note:** Environment variables are required for local development because the application's working directory differs from where files are located.
 
 ### Testing the SFTP Server
 
 **Connect via SFTP client:**
 ```bash
-# Connect to SFTP server
-sftp -P 2222 -i ~/.ssh/sftp_test_key policyholder-consumer@localhost
+# Connect to SFTP server (replace 'your-username' with the username in authorized_keys)
+sftp -P 2222 -i ~/.ssh/sftp_test_key your-username@localhost
 
 # SFTP commands:
 sftp> ls                           # List files
@@ -498,10 +541,13 @@ sftp> quit                         # Disconnect
 
 **Download with SCP:**
 ```bash
+# Replace 'your-username' with the username from authorized_keys
 scp -P 2222 -i ~/.ssh/sftp_test_key \
-  policyholder-consumer@localhost:policyholders.csv \
+  your-username@localhost:policyholders.csv \
   ./downloaded.csv
 ```
+
+**Note:** The username must match the third field in your `keys/authorized_keys` file.
 
 **Check health:**
 ```bash
@@ -520,7 +566,8 @@ curl http://localhost:9090/actuator
 **Authentication:**
 - SSH public key authentication only (no passwords)
 - Multiple users supported with different public keys
-- Keys configured in `sftp.yml`
+- Keys stored in `keys/authorized_keys` file (OpenSSH format)
+- Currently supports RSA keys only (Ed25519 not supported in Apache SSHD 2.12.0)
 
 **File System:**
 - Read-only virtual file system prevents uploads, modifications, deletions
@@ -534,9 +581,12 @@ curl http://localhost:9090/actuator
 4. Configurable session limits and timeouts
 5. Path normalization prevents traversal attacks
 6. Comprehensive logging of authentication attempts and file access
+7. Authorized keys file can have restricted permissions (chmod 600)
 
 **Technical Implementation:**
 - Uses Apache MINA SSHD 2.12.0 for embedded SFTP server
+- SSH public keys loaded from file at startup (no hot-reload)
+- Manual parsing of authorized_keys file using `PublicKeyEntry` API
 - Custom `FileSystemFactory` provides read-only file system per session
 - `PublickeyAuthenticator` validates SSH keys against configured users
 - Server lifecycle managed via `@PostConstruct` and `@PreDestroy`
@@ -560,25 +610,32 @@ sftp-server:
   environment:
     - SFTP_DATA_DIR=/app/data
     - SFTP_HOST_KEY_PATH=/app/keys/hostkey.pem
+    - SFTP_AUTHORIZED_KEYS_PATH=/app/keys/authorized_keys
   volumes:
     - ./data:/app/data:ro   # Read-only CSV files
-    - ./keys:/app/keys       # Persistent host key
+    - ./keys:/app/keys       # Persistent host key and authorized_keys
 ```
 
 **Environment Variables:**
 - `SFTP_DATA_DIR=/app/data` - Override default data directory for Docker
 - `SFTP_HOST_KEY_PATH=/app/keys/hostkey.pem` - Override default host key path for Docker
+- `SFTP_AUTHORIZED_KEYS_PATH=/app/keys/authorized_keys` - Override default authorized keys file path for Docker
 
 **Volume Mounts:**
 - `./data:/app/data:ro` - Mounts data directory as read-only, containing CSV files
-- `./keys:/app/keys` - Persistent storage for auto-generated RSA host key
+- `./keys:/app/keys` - Persistent storage for auto-generated RSA host key and authorized_keys file
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
 | Connection refused | Verify server started: `docker compose ps`, check logs with `docker compose logs sftp-server` |
-| Authentication failed | Verify public key in `sftp.yml` matches your SSH key (`cat ~/.ssh/sftp_test_key.pub`) |
+| Authentication failed | Verify public key in `keys/authorized_keys` matches your SSH key. Ensure format is: `<key-type> <key-data> <username>` (three fields, no @ symbols). |
+| Authorized keys file not found | Create `keys/authorized_keys` file with your SSH public key. See `keys/authorized_keys.example` for format. |
+| "No decoder available for key type=ssh-ed25519" | Use RSA keys instead. Ed25519 keys are not supported in Apache SSHD 2.12.0. Generate with: `ssh-keygen -t rsa -b 2048 -f ~/.ssh/sftp_key -N ""` |
+| "Invalid format" or "Missing username" | Ensure authorized_keys file format is correct: `ssh-rsa <key-data> username`. Username should be in the third field, not in `user@host` format. |
+| "No valid authorized keys found" | Check that authorized_keys file has at least one valid entry. Ensure lines are not commented out and format is correct. |
+| Server fails to start (local dev) | Ensure environment variables are set: `SFTP_DATA_DIR`, `SFTP_HOST_KEY_PATH`, `SFTP_AUTHORIZED_KEYS_PATH`. Paths must be relative to where you run the command from. |
 | File not found | Check data volume mount: `docker compose exec sftp-server ls /app/data` |
 | Permission denied (read) | Check file permissions in data directory |
 | Permission denied (write) | Expected - server is read-only by design |

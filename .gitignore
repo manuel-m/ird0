@@ -26,4 +26,8 @@ replay_pid*
 target
 TODO.md
 data
-keys
+
+# Keys directory - ignore all files except the example
+keys/*
+!keys/authorized_keys.example
+!keys/.gitkeep
