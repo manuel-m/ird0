@@ -1,6 +1,6 @@
-# IRD0
+# CLAUDE.md
 
-IRD demo project
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
@@ -29,7 +29,7 @@ The project uses a unique architecture where a single microservice (`microservic
 
 Each instance is configured via YAML files in `microservices/directory/configs/`. Common configuration (`application.yml`) is shared, while instance-specific files (`policyholders.yml`, `experts.yml`, `providers.yml`) provide overrides for port, database path, and API base path.
 
-See [Directory Service Documentation](microservices/directory/IRD0) for detailed configuration and usage.
+See [Directory Service Documentation](microservices/directory/CLAUDE.md) for detailed configuration and usage.
 
 #### SFTP Server
 - **Port**: 2222 (SFTP), 9090 (management/actuator)
@@ -38,14 +38,14 @@ See [Directory Service Documentation](microservices/directory/IRD0) for detailed
 - **Access**: Read-only file system
 - **Purpose**: Expose policyholder CSV files to external consumers
 
-See [SFTP Server Documentation](microservices/sftp-server/IRD0) for SSH key setup, configuration, and usage.
+See [SFTP Server Documentation](microservices/sftp-server/CLAUDE.md) for SSH key setup, configuration, and usage.
 
 #### Data Generator Utility
 - **Type**: CLI tool
 - **Purpose**: Generate realistic fake policyholder data for testing
 - **Output**: CSV files compatible with Directory Service
 
-See [Data Generator Documentation](utilities/directory-data-generator/IRD0) for usage and examples.
+See [Data Generator Documentation](utilities/directory-data-generator/CLAUDE.md) for usage and examples.
 
 ### Technology Stack
 
@@ -69,7 +69,7 @@ ird0/
 │   ├── directory/
 │   │   ├── pom.xml                           # Directory microservice POM
 │   │   ├── Dockerfile                         # Multi-stage build
-│   │   ├── IRD0                          # Directory service documentation
+│   │   ├── CLAUDE.md                          # Directory service documentation
 │   │   ├── configs/                          # Configuration files
 │   │   │   ├── application.yml                # Common shared configuration
 │   │   │   ├── policyholders.yml              # Instance-specific overrides
@@ -84,7 +84,7 @@ ird0/
 │   └── sftp-server/
 │       ├── pom.xml                           # SFTP server module POM
 │       ├── Dockerfile                         # Multi-stage build
-│       ├── IRD0                          # SFTP server documentation
+│       ├── CLAUDE.md                          # SFTP server documentation
 │       ├── configs/                          # Configuration files
 │       │   ├── application.yml                # Common configuration
 │       │   └── sftp.yml                       # SFTP-specific configuration
@@ -103,7 +103,7 @@ ird0/
 └── utilities/
     └── directory-data-generator/             # Test data generator CLI
         ├── pom.xml                           # Data generator module POM
-        ├── IRD0                          # Data generator documentation
+        ├── CLAUDE.md                          # Data generator documentation
         └── src/main/java/com/ird0/utilities/datagen/
             ├── DataGeneratorCLI.java          # CLI entry point
             └── PolicyholderDataGenerator.java # Data generation logic
@@ -111,11 +111,11 @@ ird0/
 
 ## Module-Specific Documentation
 
-Each microservice has its own detailed IRD0 file:
+Each microservice has its own detailed CLAUDE.md file:
 
-- **[Directory Service](microservices/directory/IRD0)** - Configuration, multi-instance setup, running locally, API testing, implementation details
-- **[SFTP Server](microservices/sftp-server/IRD0)** - SSH key setup, configuration, testing, security features, troubleshooting
-- **[Data Generator](utilities/directory-data-generator/IRD0)** - Building, usage, data format, importing strategies
+- **[Directory Service](microservices/directory/CLAUDE.md)** - Configuration, multi-instance setup, running locally, API testing, implementation details
+- **[SFTP Server](microservices/sftp-server/CLAUDE.md)** - SSH key setup, configuration, testing, security features, troubleshooting
+- **[Data Generator](utilities/directory-data-generator/CLAUDE.md)** - Building, usage, data format, importing strategies
 
 ## Common Development Commands
 
