@@ -29,7 +29,7 @@ The project uses a unique architecture where a single microservice (`microservic
 
 Each instance is configured via YAML files in `microservices/directory/configs/`. Common configuration (`application.yml`) is shared, while instance-specific files (`policyholders.yml`, `experts.yml`, `providers.yml`) provide overrides for port, database path, and API base path.
 
-See [Directory Service Documentation](microservices/directory) for detailed configuration and usage.
+See [Directory Service Documentation](microservices/directory/IRD0) for detailed configuration and usage.
 
 #### SFTP Server
 - **Port**: 2222 (SFTP), 9090 (management/actuator)
@@ -38,14 +38,14 @@ See [Directory Service Documentation](microservices/directory) for detailed conf
 - **Access**: Read-only file system
 - **Purpose**: Expose policyholder CSV files to external consumers
 
-See [SFTP Server Documentation](microservices/sftp-server) for SSH key setup, configuration, and usage.
+See [SFTP Server Documentation](microservices/sftp-server/IRD0) for SSH key setup, configuration, and usage.
 
 #### Data Generator Utility
 - **Type**: CLI tool
 - **Purpose**: Generate realistic fake policyholder data for testing
 - **Output**: CSV files compatible with Directory Service
 
-See [Data Generator Documentation](utilities/directory-data-generator) for usage and examples.
+See [Data Generator Documentation](utilities/directory-data-generator/IRD0) for usage and examples.
 
 ### Technology Stack
 

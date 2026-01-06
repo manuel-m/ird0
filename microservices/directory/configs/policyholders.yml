@@ -4,6 +4,14 @@ server:
 directory:
   api:
     base-path: /api/policyholders
+  sftp-import:
+    enabled: true
+    host: ${SFTP_HOST:localhost}
+    port: ${SFTP_PORT:2222}
+    username: ${SFTP_USERNAME:policyholder-importer}
+    private-key-path: ${SFTP_PRIVATE_KEY_PATH:./keys/sftp_client_key}
+    remote-file-path: policyholders.csv
+    connection-timeout: 10000
 
 spring:
   datasource:

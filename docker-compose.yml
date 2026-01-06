@@ -8,6 +8,15 @@ services:
     image: directory-policyholders
     ports:
       - "8081:8081"
+    depends_on:
+      - sftp-server
+    environment:
+      - SFTP_HOST=sftp-server
+      - SFTP_PORT=2222
+      - SFTP_USERNAME=policyholder-importer
+      - SFTP_PRIVATE_KEY_PATH=/app/keys/sftp_client_key
+    volumes:
+      - ./keys:/app/keys:ro
 
   experts:
     build:

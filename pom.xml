@@ -22,7 +22,6 @@
         <datafaker.version>2.1.0</datafaker.version>
         <commons-csv.version>1.10.0</commons-csv.version>
         <picocli.version>4.7.5</picocli.version>
-        <sshd.version>2.12.0</sshd.version>
     </properties>
 
     <dependencyManagement>
@@ -51,24 +50,6 @@
                 <groupId>info.picocli</groupId>
                 <artifactId>picocli</artifactId>
                 <version>${picocli.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.sshd</groupId>
-                <artifactId>sshd-core</artifactId>
-                <version>${sshd.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.sshd</groupId>
-                <artifactId>sshd-sftp</artifactId>
-                <version>${sshd.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.sshd</groupId>
-                <artifactId>sshd-openpgp</artifactId>
-                <version>${sshd.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
