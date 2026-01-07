@@ -9,6 +9,46 @@ This is an insurance platform microservices architecture built with Spring Boot 
 2. **SFTP Server** - Secure file transfer service for exposing policyholder CSV files via SFTP protocol
 3. **Data Generator Utility** - CLI tool for generating realistic test data
 
+## Quick Start
+
+**Prerequisites:**
+- Java 21
+- Maven 3.9+
+- Docker and Docker Compose
+
+**Run all services:**
+```bash
+docker compose up --build
+```
+
+**Verify services are running:**
+```bash
+# Policyholders API (port 8081)
+curl http://localhost:8081/actuator/health
+
+# Experts API (port 8082)
+curl http://localhost:8082/actuator/health
+
+# Providers API (port 8083)
+curl http://localhost:8083/actuator/health
+
+# SFTP Server management endpoint (port 9090)
+curl http://localhost:9090/actuator/health
+```
+
+**Test the APIs:**
+```bash
+# Create a policyholder
+curl -X POST http://localhost:8081/api/policyholders \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "phone": "555-1234", "email": "john@example.com"}'
+
+# List all policyholders
+curl http://localhost:8081/api/policyholders
+```
+
+See [Module-Specific Documentation](#module-specific-documentation) for detailed configuration and usage.
+
 ## Architecture Overview
 
 ### Microservices
@@ -16,20 +56,20 @@ This is an insurance platform microservices architecture built with Spring Boot 
 #### Directory Service (Multi-Instance)
 - **Ports**: 8081 (policyholders), 8082 (experts), 8083 (providers)
 - **Protocol**: REST API (HTTP)
-- **Database**: SQLite (separate database per instance)
+- **Database**: PostgreSQL (separate database per instance in single PostgreSQL container)
 - **Purpose**: CRUD operations for directory entries
 
 ##### Multi-Instance Microservice Pattern
 
 The project uses a unique architecture where a single microservice (`microservices/directory/`) is deployed three times with different configurations:
 
-- **Policyholders Service**: Port 8081, API path `/api/policyholders`, SQLite database `policyholders.sqlite`
-- **Experts Service**: Port 8082, API path `/api/experts`, SQLite database `experts.sqlite`
-- **Providers Service**: Port 8083, API path `/api/providers`, SQLite database `providers.sqlite`
+- **Policyholders Service**: Port 8081, API path `/api/policyholders`, PostgreSQL database `policyholders_db`
+- **Experts Service**: Port 8082, API path `/api/experts`, PostgreSQL database `experts_db`
+- **Providers Service**: Port 8083, API path `/api/providers`, PostgreSQL database `providers_db`
 
 Each instance is configured via YAML files in `microservices/directory/configs/`. Common configuration (`application.yml`) is shared, while instance-specific files (`policyholders.yml`, `experts.yml`, `providers.yml`) provide overrides for port, database path, and API base path.
 
-See [Directory Service Documentation](microservices/directory/IRD0) for detailed configuration and usage.
+See [Directory Service Documentation](microservices/directory/CLAUDE.md) for detailed configuration and usage.
 
 #### SFTP Server
 - **Port**: 2222 (SFTP), 9090 (management/actuator)
@@ -38,14 +78,14 @@ See [Directory Service Documentation](microservices/directory/IRD0) for detailed
 - **Access**: Read-only file system
 - **Purpose**: Expose policyholder CSV files to external consumers
 
-See [SFTP Server Documentation](microservices/sftp-server/IRD0) for SSH key setup, configuration, and usage.
+See [SFTP Server Documentation](microservices/sftp-server/CLAUDE.md) for SSH key setup, configuration, and usage.
 
 #### Data Generator Utility
 - **Type**: CLI tool
 - **Purpose**: Generate realistic fake policyholder data for testing
 - **Output**: CSV files compatible with Directory Service
 
-See [Data Generator Documentation](utilities/directory-data-generator/IRD0) for usage and examples.
+See [Data Generator Documentation](utilities/directory-data-generator/CLAUDE.md) for usage and examples.
 
 ### Technology Stack
 
@@ -54,10 +94,35 @@ See [Data Generator Documentation](utilities/directory-data-generator/IRD0) for 
 - Spring Data JPA with Hibernate (directory service)
 - Apache MINA SSHD 2.12.0 (SFTP server)
 - Spring Boot Actuator (health, metrics, info endpoints)
-- SQLite database (directory service only)
+- PostgreSQL 16 database (directory service only)
 - Lombok for boilerplate reduction
 - Maven for build management
 - Docker multi-stage builds
+
+### PostgreSQL Database
+
+All Directory Service instances connect to a shared PostgreSQL 16 container with separate databases:
+
+- **Container**: `postgres` (port 5432)
+- **Version**: PostgreSQL 16 Alpine
+- **Databases**:
+  - `policyholders_db` - Policyholders service data
+  - `experts_db` - Experts service data
+  - `providers_db` - Providers service data
+- **User**: `directory_user`
+- **Password**: `directory_pass`
+- **Persistence**: Data stored in named volume `postgres-data`
+
+**Connection Details:**
+- Host: `postgres` (Docker network) or `localhost` (local development)
+- Port: `5432`
+- JDBC URL format: `jdbc:postgresql://[host]:5432/[database_name]`
+
+**Data Persistence:**
+Database data persists in the `postgres-data` Docker volume, surviving container restarts and rebuilds.
+
+**Health Checks:**
+Directory services wait for PostgreSQL health check before starting, ensuring database availability.
 
 ### Project Structure
 
@@ -69,7 +134,7 @@ ird0/
 │   ├── directory/
 │   │   ├── pom.xml                           # Directory microservice POM
 │   │   ├── Dockerfile                         # Multi-stage build
-│   │   ├── IRD0                          # Directory service documentation
+│   │   ├── CLAUDE.md                          # Directory service documentation
 │   │   ├── configs/                          # Configuration files
 │   │   │   ├── application.yml                # Common shared configuration
 │   │   │   ├── policyholders.yml              # Instance-specific overrides
@@ -84,7 +149,7 @@ ird0/
 │   └── sftp-server/
 │       ├── pom.xml                           # SFTP server module POM
 │       ├── Dockerfile                         # Multi-stage build
-│       ├── IRD0                          # SFTP server documentation
+│       ├── CLAUDE.md                          # SFTP server documentation
 │       ├── configs/                          # Configuration files
 │       │   ├── application.yml                # Common configuration
 │       │   └── sftp.yml                       # SFTP-specific configuration
@@ -103,7 +168,7 @@ ird0/
 └── utilities/
     └── directory-data-generator/             # Test data generator CLI
         ├── pom.xml                           # Data generator module POM
-        ├── IRD0                          # Data generator documentation
+        ├── CLAUDE.md                          # Data generator documentation
         └── src/main/java/com/ird0/utilities/datagen/
             ├── DataGeneratorCLI.java          # CLI entry point
             └── PolicyholderDataGenerator.java # Data generation logic
@@ -111,11 +176,11 @@ ird0/
 
 ## Module-Specific Documentation
 
-Each microservice has its own detailed IRD0 file:
+Each microservice has its own detailed CLAUDE.md file:
 
-- **[Directory Service](microservices/directory/IRD0)** - Configuration, multi-instance setup, running locally, API testing, implementation details
-- **[SFTP Server](microservices/sftp-server/IRD0)** - SSH key setup, configuration, testing, security features, troubleshooting
-- **[Data Generator](utilities/directory-data-generator/IRD0)** - Building, usage, data format, importing strategies
+- **[Directory Service](microservices/directory/CLAUDE.md)** - Configuration, multi-instance setup, running locally, API testing, implementation details
+- **[SFTP Server](microservices/sftp-server/CLAUDE.md)** - SSH key setup, configuration, testing, security features, troubleshooting
+- **[Data Generator](utilities/directory-data-generator/CLAUDE.md)** - Building, usage, data format, importing strategies
 
 ## Common Development Commands
 
