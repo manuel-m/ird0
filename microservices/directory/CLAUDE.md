@@ -4,12 +4,12 @@ This document provides detailed guidance for working with the Directory Service 
 
 ## Overview
 
-The Directory Service is a multi-instance REST API for managing directory entries (policyholders, experts, and providers). It uses Spring Boot 3.5.0, Spring Data JPA with Hibernate, and SQLite for data persistence.
+The Directory Service is a multi-instance REST API for managing directory entries (policyholders, experts, and providers). It uses Spring Boot 3.5.0, Spring Data JPA with Hibernate, and PostgreSQL for data persistence.
 
 **Key Features:**
 - Multi-instance deployment (same codebase, different configurations)
 - RESTful CRUD operations
-- SQLite database (separate database per instance)
+- PostgreSQL database (separate database per instance)
 - Spring Boot Actuator for health monitoring
 - Configuration-driven API paths and database locations
 
@@ -17,11 +17,11 @@ The Directory Service is a multi-instance REST API for managing directory entrie
 
 This service demonstrates a unique architecture where a single microservice is deployed **three times** with different configurations:
 
-| Instance | Port | API Path | Database File |
-|----------|------|----------|---------------|
-| Policyholders | 8081 | `/api/policyholders` | `policyholders.sqlite` |
-| Experts | 8082 | `/api/experts` | `experts.sqlite` |
-| Providers | 8083 | `/api/providers` | `providers.sqlite` |
+| Instance | Port | API Path | Database |
+|----------|------|----------|----------|
+| Policyholders | 8081 | `/api/policyholders` | `policyholders_db` (PostgreSQL) |
+| Experts | 8082 | `/api/experts` | `experts_db` (PostgreSQL) |
+| Providers | 8083 | `/api/providers` | `providers_db` (PostgreSQL) |
 
 Each instance:
 - Runs the same application code (`DirectoryApplication.java`)
@@ -44,17 +44,19 @@ spring:
   application:
     name: directory-service
 
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: ${POSTGRES_USER:directory_user}
+    password: ${POSTGRES_PASSWORD:directory_pass}
+
   jpa:
     hibernate:
       ddl-auto: update                                    # Auto-update schema
     show-sql: true                                         # Log SQL statements
     properties:
       hibernate:
-        dialect: org.hibernate.community.dialect.SQLiteDialect  # SQLite dialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-
-  datasource:
-    driver-class-name: org.sqlite.JDBC
 
 management:
   endpoints:
@@ -66,7 +68,8 @@ management:
 **Key Settings:**
 - `hibernate.ddl-auto: update` - Automatically creates/updates database schema
 - `show-sql: true` - Logs all SQL queries for debugging
-- SQLite dialect from `hibernate-community-dialects` dependency
+- PostgreSQL dialect from Hibernate core (no additional dependency required)
+- Credentials from environment variables with defaults for local development
 - Actuator endpoints enabled for monitoring
 
 ### Instance-Specific Configuration Files
@@ -81,10 +84,18 @@ server:
 directory:
   api:
     base-path: /api/policyholders
+  sftp-import:
+    enabled: true
+    host: ${SFTP_HOST:localhost}
+    port: ${SFTP_PORT:2222}
+    username: ${SFTP_USERNAME:policyholder-importer}
+    private-key-path: ${SFTP_PRIVATE_KEY_PATH:./keys/sftp_client_key}
+    remote-file-path: policyholders.csv
+    connection-timeout: 10000
 
 spring:
   datasource:
-    url: jdbc:sqlite:policyholders.sqlite
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/policyholders_db
 ```
 
 **`experts.yml`:**
@@ -98,7 +109,7 @@ directory:
 
 spring:
   datasource:
-    url: jdbc:sqlite:experts.sqlite
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/experts_db
 ```
 
 **`providers.yml`:**
@@ -112,11 +123,17 @@ directory:
 
 spring:
   datasource:
-    url: jdbc:sqlite:providers.sqlite
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/providers_db
 ```
 
 **Configuration Loading:**
 Instances load both files in order: `application.yml` (common) → instance-specific YAML (overrides).
+
+**Environment Variables:**
+- `POSTGRES_HOST`: Database host (default: `localhost` for local, `postgres` in Docker)
+- `POSTGRES_PORT`: Database port (default: `5432`)
+- `POSTGRES_USER`: Database username (default: `directory_user`)
+- `POSTGRES_PASSWORD`: Database password (default: `directory_pass`)
 
 ## Building the Directory Service
 
@@ -160,13 +177,34 @@ mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:c
 
 **What Happens:**
 - Service starts on the configured port
-- SQLite database file is created in `microservices/directory/` folder (if it doesn't exist)
+- Connects to PostgreSQL database (requires PostgreSQL to be running)
 - Database schema is auto-created/updated based on JPA entities
 - SQL logging is enabled (`show-sql: true`)
 - Service is ready to accept HTTP requests
 
 **To stop the service:**
 Press `Ctrl+C`
+
+### Running with Local PostgreSQL
+
+**Option 1: Use Docker Compose PostgreSQL**
+```bash
+docker compose up postgres -d
+```
+Then run services locally (they will connect to Docker PostgreSQL on localhost:5432).
+
+**Option 2: Local PostgreSQL Installation**
+
+Create databases (one-time setup):
+```bash
+psql -U postgres -c "CREATE DATABASE policyholders_db;"
+psql -U postgres -c "CREATE DATABASE experts_db;"
+psql -U postgres -c "CREATE DATABASE providers_db;"
+psql -U postgres -c "CREATE USER directory_user WITH PASSWORD 'directory_pass';"
+psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE policyholders_db TO directory_user;"
+psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE experts_db TO directory_user;"
+psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE providers_db TO directory_user;"
+```
 
 ## Running with Docker
 
@@ -311,26 +349,48 @@ The `directory.api.base-path` property is set in instance-specific YAML files:
 
 This allows the same controller code to serve different API paths based on configuration.
 
-### SQLite with Hibernate
+### PostgreSQL with Hibernate
 
-Each service instance uses its own SQLite database file. The project uses the Hibernate community dialect for SQLite.
+Each service instance uses its own PostgreSQL database in a shared PostgreSQL container.
 
-**Important:** The correct dialect class is:
-```yaml
-spring.jpa.properties.hibernate.dialect: org.hibernate.community.dialect.SQLiteDialect
+**Database Architecture:**
+```
+PostgreSQL Container (port 5432)
+├── policyholders_db → Policyholders Service (port 8081)
+├── experts_db → Experts Service (port 8082)
+└── providers_db → Providers Service (port 8083)
 ```
 
-This requires the `hibernate-community-dialects` dependency (already configured in pom.xml).
+**Key Features:**
+- **Data Isolation**: Each database is completely isolated
+- **Connection Pooling**: Each service maintains its own HikariCP connection pool
+- **Schema Management**: Hibernate auto-creates/updates schema (`ddl-auto: update`)
+- **Data Persistence**: Data persists in Docker volume `postgres-data`
 
-**Database Schema Management:**
-- Schema is auto-created on first run (`ddl-auto: update`)
-- Schema is automatically updated when entity changes are detected
-- Database file is created in the working directory (`microservices/directory/`)
+**PostgreSQL Dialect:**
+```yaml
+spring.jpa.properties.hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+```
+Included in Hibernate core (no additional dependencies required).
+
+**Database Schema:**
+```sql
+CREATE TABLE directory_entry (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(50),
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    address TEXT,
+    additional_info TEXT
+);
+```
+Schema is automatically created by Hibernate based on the `DirectoryEntry` entity.
 
 **SQL Logging:**
 With `show-sql: true`, all SQL queries are logged to the console:
 ```
-Hibernate: insert into directory_entry (address, additional_info, email, name, phone, type, id) values (?, ?, ?, ?, ?, ?, ?)
+Hibernate: insert into directory_entry (address, additional_info, email, name, phone, type) values (?, ?, ?, ?, ?, ?) returning id
 ```
 
 ### Standard CRUD Operations
@@ -367,8 +427,7 @@ Key dependencies (managed by parent POM):
 - `spring-boot-starter-web` - REST API support
 - `spring-boot-starter-data-jpa` - JPA/Hibernate support
 - `spring-boot-starter-actuator` - Health and metrics
-- `org.xerial:sqlite-jdbc` - SQLite JDBC driver
-- `org.hibernate.orm:hibernate-community-dialects` - SQLite dialect
+- `org.postgresql:postgresql` - PostgreSQL JDBC driver (runtime)
 - `org.projectlombok:lombok` - Boilerplate reduction
 
 ## Docker Configuration
@@ -395,8 +454,10 @@ The `APP_YML` build argument selects which instance-specific configuration file 
 | Issue | Solution |
 |-------|----------|
 | Port already in use | Stop conflicting service or change port in instance-specific YAML |
-| Database locked | Ensure no other process is accessing the SQLite file |
+| Cannot connect to database | Verify PostgreSQL running: `docker compose ps postgres` |
 | Schema not created | Verify `ddl-auto: update` in application.yml |
 | Wrong API path | Check `directory.api.base-path` in instance-specific YAML |
-| ClassNotFoundException for SQLite dialect | Verify `hibernate-community-dialects` dependency in pom.xml |
+| Authentication failed | Check `POSTGRES_USER` and `POSTGRES_PASSWORD` environment variables |
 | SQL not logging | Ensure `show-sql: true` in application.yml |
+| Database does not exist | Check init script logs: `docker compose logs postgres` |
+| Connection pool exhausted | Increase `hikari.maximum-pool-size` or reduce concurrent requests |

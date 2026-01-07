@@ -15,4 +15,4 @@ directory:
 
 spring:
   datasource:
-    url: jdbc:sqlite:./policyholders.sqlite
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/policyholders_db

@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 This is an insurance platform microservices architecture built with Spring Boot 3.5.0 and Java 21. The project includes:
-1. **Directory Service** - Multi-instance REST API for managing policyholders, experts, and providers
+1. **Directory Service** - Multi-instance REST API for managing policyholders, experts, and providers (PostgreSQL database)
 2. **SFTP Server** - Secure file transfer service for exposing policyholder CSV files via SFTP protocol
 3. **Data Generator Utility** - CLI tool for generating realistic test data
 
@@ -16,16 +16,16 @@ This is an insurance platform microservices architecture built with Spring Boot 
 #### Directory Service (Multi-Instance)
 - **Ports**: 8081 (policyholders), 8082 (experts), 8083 (providers)
 - **Protocol**: REST API (HTTP)
-- **Database**: SQLite (separate database per instance)
+- **Database**: PostgreSQL (separate database per instance in single PostgreSQL container)
 - **Purpose**: CRUD operations for directory entries
 
 ##### Multi-Instance Microservice Pattern
 
 The project uses a unique architecture where a single microservice (`microservices/directory/`) is deployed three times with different configurations:
 
-- **Policyholders Service**: Port 8081, API path `/api/policyholders`, SQLite database `policyholders.sqlite`
-- **Experts Service**: Port 8082, API path `/api/experts`, SQLite database `experts.sqlite`
-- **Providers Service**: Port 8083, API path `/api/providers`, SQLite database `providers.sqlite`
+- **Policyholders Service**: Port 8081, API path `/api/policyholders`, PostgreSQL database `policyholders_db`
+- **Experts Service**: Port 8082, API path `/api/experts`, PostgreSQL database `experts_db`
+- **Providers Service**: Port 8083, API path `/api/providers`, PostgreSQL database `providers_db`
 
 Each instance is configured via YAML files in `microservices/directory/configs/`. Common configuration (`application.yml`) is shared, while instance-specific files (`policyholders.yml`, `experts.yml`, `providers.yml`) provide overrides for port, database path, and API base path.
 
@@ -54,7 +54,7 @@ See [Data Generator Documentation](utilities/directory-data-generator/CLAUDE.md)
 - Spring Data JPA with Hibernate (directory service)
 - Apache MINA SSHD 2.12.0 (SFTP server)
 - Spring Boot Actuator (health, metrics, info endpoints)
-- SQLite database (directory service only)
+- PostgreSQL 16 database (directory service only)
 - Lombok for boilerplate reduction
 - Maven for build management
 - Docker multi-stage builds
@@ -108,6 +108,31 @@ ird0/
             ├── DataGeneratorCLI.java          # CLI entry point
             └── PolicyholderDataGenerator.java # Data generation logic
 ```
+
+### PostgreSQL Database
+
+All Directory Service instances connect to a shared PostgreSQL 16 container with separate databases:
+
+- **Container**: `postgres` (port 5432)
+- **Version**: PostgreSQL 16 Alpine
+- **Databases**:
+  - `policyholders_db` - Policyholders service data
+  - `experts_db` - Experts service data
+  - `providers_db` - Providers service data
+- **User**: `directory_user`
+- **Password**: `directory_pass`
+- **Persistence**: Data stored in named volume `postgres-data`
+
+**Connection Details:**
+- Host: `postgres` (Docker network) or `localhost` (local development)
+- Port: `5432`
+- JDBC URL format: `jdbc:postgresql://[host]:5432/[database_name]`
+
+**Data Persistence:**
+Database data persists in the `postgres-data` Docker volume, surviving container restarts and rebuilds.
+
+**Health Checks:**
+Directory services wait for PostgreSQL health check before starting, ensuring database availability.
 
 ## Module-Specific Documentation
 
