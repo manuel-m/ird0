@@ -22,3 +22,9 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+logging:
+  level:
+    com.ird0.directory: INFO
+    org.springframework.integration: INFO
+    org.springframework.integration.sftp: INFO

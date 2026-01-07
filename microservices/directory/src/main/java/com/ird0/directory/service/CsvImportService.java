@@ -14,6 +14,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -21,9 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CsvImportService {
 
+  private static final int BATCH_SIZE = 500;
   private final DirectoryEntryRepository repository;
 
-  public record ImportResult(int totalRows, int successRows, int failedRows) {}
+  public record ImportResult(
+      int totalRows, int newRows, int updatedRows, int unchangedRows, int failedRows) {}
 
   @Transactional
   public ImportResult importFromCsv(InputStream csvData) throws IOException {
@@ -66,7 +69,122 @@ public class CsvImportService {
     }
 
     int successRows = totalRows - failedRows;
-    return new ImportResult(totalRows, successRows, failedRows);
+    return new ImportResult(totalRows, successRows, 0, 0, failedRows);
+  }
+
+  @Transactional
+  public ImportResult importFromCsvWithBatching(InputStream csvData) throws IOException {
+    log.info("Starting batched CSV import with batch size: {}", BATCH_SIZE);
+
+    int totalRows = 0;
+    int newRows = 0;
+    int updatedRows = 0;
+    int unchangedRows = 0;
+    int failedRows = 0;
+
+    List<DirectoryEntry> batch = new ArrayList<>(BATCH_SIZE);
+
+    try (Reader reader = new InputStreamReader(csvData);
+        CSVParser parser = createCsvParser(reader)) {
+
+      for (CSVRecord record : parser) {
+        totalRows++;
+
+        try {
+          DirectoryEntry entry = parseRecord(record);
+          if (entry != null) {
+            batch.add(entry);
+
+            if (batch.size() >= BATCH_SIZE) {
+              ImportResult batchResult = processBatch(batch);
+              newRows += batchResult.newRows();
+              updatedRows += batchResult.updatedRows();
+              unchangedRows += batchResult.unchangedRows();
+              failedRows += batchResult.failedRows();
+              batch.clear();
+            }
+          } else {
+            failedRows++;
+          }
+        } catch (Exception e) {
+          log.warn("Failed to parse record {}: {}", record.getRecordNumber(), e.getMessage());
+          failedRows++;
+        }
+      }
+
+      if (!batch.isEmpty()) {
+        ImportResult batchResult = processBatch(batch);
+        newRows += batchResult.newRows();
+        updatedRows += batchResult.updatedRows();
+        unchangedRows += batchResult.unchangedRows();
+        failedRows += batchResult.failedRows();
+      }
+    }
+
+    log.info(
+        "Batched CSV import completed: {} total, {} new, {} updated, {} unchanged, {} failed",
+        totalRows,
+        newRows,
+        updatedRows,
+        unchangedRows,
+        failedRows);
+    return new ImportResult(totalRows, newRows, updatedRows, unchangedRows, failedRows);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  protected ImportResult processBatch(List<DirectoryEntry> batch) {
+    log.debug("Processing batch of {} entries", batch.size());
+    return upsertBatch(batch);
+  }
+
+  private boolean hasChanged(DirectoryEntry existing, DirectoryEntry newEntry) {
+    return !java.util.Objects.equals(existing.getName(), newEntry.getName())
+        || !java.util.Objects.equals(existing.getType(), newEntry.getType())
+        || !java.util.Objects.equals(existing.getPhone(), newEntry.getPhone())
+        || !java.util.Objects.equals(existing.getAddress(), newEntry.getAddress())
+        || !java.util.Objects.equals(
+            existing.getAdditionalInfo(), newEntry.getAdditionalInfo());
+  }
+
+  private ImportResult upsertBatch(List<DirectoryEntry> entries) {
+    int newRows = 0;
+    int updatedRows = 0;
+    int unchangedRows = 0;
+    int failedRows = 0;
+
+    for (DirectoryEntry entry : entries) {
+      try {
+        java.util.Optional<DirectoryEntry> existing = repository.findByEmail(entry.getEmail());
+
+        if (existing.isEmpty()) {
+          repository.upsertByEmail(entry);
+          newRows++;
+        } else {
+          DirectoryEntry existingEntry = existing.get();
+          if (hasChanged(existingEntry, entry)) {
+            repository.upsertByEmail(entry);
+            updatedRows++;
+          } else {
+            unchangedRows++;
+          }
+        }
+      } catch (Exception e) {
+        log.warn("Failed to process entry with email {}: {}", entry.getEmail(), e.getMessage());
+        failedRows++;
+      }
+    }
+
+    return new ImportResult(entries.size(), newRows, updatedRows, unchangedRows, failedRows);
+  }
+
+  private CSVParser createCsvParser(Reader reader) throws IOException {
+    return CSVFormat.DEFAULT
+        .builder()
+        .setHeader()
+        .setSkipHeaderRecord(true)
+        .setTrim(true)
+        .build()
+        .parse(reader);
   }
 
   private DirectoryEntry parseRecord(CSVRecord record) {
@@ -75,8 +193,14 @@ public class CsvImportService {
     String email = getField(record, "email");
     String phone = getField(record, "phone");
 
-    if (name == null || name.isEmpty() || type == null || type.isEmpty() || email == null
-        || email.isEmpty() || phone == null || phone.isEmpty()) {
+    if (name == null
+        || name.isEmpty()
+        || type == null
+        || type.isEmpty()
+        || email == null
+        || email.isEmpty()
+        || phone == null
+        || phone.isEmpty()) {
       log.warn(
           "Skipping record {} - missing required fields (name, type, email, phone)",
           record.getRecordNumber());

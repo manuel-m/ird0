@@ -92,6 +92,12 @@ directory:
     private-key-path: ${SFTP_PRIVATE_KEY_PATH:./keys/sftp_client_key}
     remote-file-path: policyholders.csv
     connection-timeout: 10000
+    polling:
+      fixed-delay: 120000      # Poll every 2 minutes (in milliseconds)
+      initial-delay: 1000      # Wait 1 second after startup before first poll
+      batch-size: 500          # Process CSV in batches of 500 rows
+    local-directory: ./temp/sftp-downloads
+    metadata-directory: ./data/sftp-metadata
 
 spring:
   datasource:
@@ -134,6 +140,179 @@ Instances load both files in order: `application.yml` (common) → instance-spec
 - `POSTGRES_PORT`: Database port (default: `5432`)
 - `POSTGRES_USER`: Database username (default: `directory_user`)
 - `POSTGRES_PASSWORD`: Database password (default: `directory_pass`)
+
+## SFTP Import Architecture
+
+The Policyholders service includes an SFTP polling system that automatically imports CSV data from an SFTP server. This section describes how the import flow works.
+
+### Overview
+
+The SFTP import system uses Spring Integration to poll an SFTP server every 2 minutes, download CSV files, detect changes, and import data into the PostgreSQL database with intelligent change detection.
+
+**Key Components:**
+- `SftpPollingFlowConfig` - Spring Integration flow configuration
+- `CsvFileProcessor` - File processing with timestamp-based change detection
+- `CsvImportService` - CSV parsing and database import with change detection
+- `AlwaysAcceptFileListFilter` - SFTP file filter (accepts all files)
+- `MetadataStore` - Stores file timestamps to track changes
+
+### How It Works
+
+**1. SFTP Polling (Every 2 Minutes)**
+- Spring Integration polls the SFTP server (configured via `polling.fixed-delay`)
+- Filters for `*.csv` files in the remote directory
+- Downloads matching files to local directory (preserving timestamps)
+- Triggers `CsvFileProcessor` for each downloaded file
+
+**2. Timestamp-Based Change Detection**
+- `CsvFileProcessor` checks the file's `lastModified` timestamp
+- Compares with stored timestamp in `MetadataStore`
+- If unchanged: Logs skip message and deletes local file
+- If changed or new: Proceeds to import
+
+**3. CSV Import with Change Detection**
+- Reads CSV file with Apache Commons CSV
+- Validates required fields (name, type, email, phone)
+- Processes in batches of 500 rows
+- For each row:
+  - Checks if email exists in database
+  - If new: INSERT (counted as "new")
+  - If exists and data changed: UPDATE (counted as "updated")
+  - If exists and data unchanged: SKIP database write (counted as "unchanged")
+- Returns detailed `ImportResult` with breakdown of operations
+
+**4. Enhanced Import Results**
+- `ImportResult` tracks five counts:
+  - `totalRows` - Total CSV rows processed
+  - `newRows` - Rows inserted (new entries)
+  - `updatedRows` - Rows updated (existing entries with changes)
+  - `unchangedRows` - Rows skipped (existing entries, no changes)
+  - `failedRows` - Rows that failed validation or processing
+
+**5. Metadata Storage**
+- After successful import, stores file timestamp in `MetadataStore`
+- Used for next poll to detect file changes
+- Prevents reprocessing unchanged files
+
+### Configuration Properties
+
+```yaml
+directory:
+  sftp-import:
+    enabled: true                    # Enable/disable SFTP import
+    host: localhost                   # SFTP server hostname
+    port: 2222                        # SFTP server port
+    username: policyholder-importer   # SFTP username
+    private-key-path: ./keys/sftp_client_key  # SSH private key path
+    remote-file-path: policyholders.csv       # Remote CSV filename (not used in polling)
+    connection-timeout: 10000         # Connection timeout (milliseconds)
+    polling:
+      fixed-delay: 120000             # Poll interval (2 minutes)
+      initial-delay: 1000             # Delay before first poll (1 second)
+      batch-size: 500                 # CSV batch size for database writes
+    local-directory: ./temp/sftp-downloads     # Local download directory
+    metadata-directory: ./data/sftp-metadata   # Metadata storage directory
+```
+
+### Import Flow Diagram
+
+```
+SFTP Server (*.csv files)
+        ↓
+[Spring Integration Polling] (every 2 minutes)
+        ↓
+[Download to local-directory]
+        ↓
+[CsvFileProcessor]
+        ├─ Check timestamp in MetadataStore
+        ├─ If unchanged → Log skip → Delete file
+        └─ If changed/new → Process
+                ↓
+        [CsvImportService.importFromCsvWithBatching]
+                ├─ Parse CSV (batch size: 500)
+                ├─ Validate required fields
+                └─ For each entry:
+                      ├─ findByEmail(email)
+                      ├─ If not exists → INSERT (new)
+                      ├─ If exists + changed → UPDATE (updated)
+                      └─ If exists + unchanged → SKIP (unchanged)
+                ↓
+        [Return ImportResult]
+                ↓
+        Log: "Import completed: X total, Y new, Z updated, W unchanged, V failed"
+                ↓
+        [Store timestamp in MetadataStore]
+                ↓
+        [Delete local file]
+```
+
+### Change Detection Logic
+
+The `hasChanged()` method compares all fields between existing and new entries:
+
+```java
+private boolean hasChanged(DirectoryEntry existing, DirectoryEntry newEntry) {
+  return !Objects.equals(existing.getName(), newEntry.getName())
+      || !Objects.equals(existing.getType(), newEntry.getType())
+      || !Objects.equals(existing.getPhone(), newEntry.getPhone())
+      || !Objects.equals(existing.getAddress(), newEntry.getAddress())
+      || !Objects.equals(existing.getAdditionalInfo(), newEntry.getAdditionalInfo());
+}
+```
+
+**Note:** Email is not compared (it's the unique key for lookups).
+
+### Log Output Examples
+
+**File unchanged (timestamp match):**
+```
+INFO  File 'policyholders.csv' has not changed since last poll (current: 1234567890, stored: 1234567890), skipping processing
+```
+
+**File changed - first import:**
+```
+INFO  File 'policyholders.csv' not seen before, will process
+INFO  Starting batched CSV import with batch size: 500
+INFO  Batched CSV import completed: 100 total, 100 new, 0 updated, 0 unchanged, 0 failed
+INFO  Import completed for policyholders.csv: 100 total, 100 new, 0 updated, 0 unchanged, 0 failed
+```
+
+**File changed - reimport with no data changes:**
+```
+INFO  File 'policyholders.csv' has been modified (current: 1234567999, stored: 1234567890), will process
+INFO  Starting batched CSV import with batch size: 500
+INFO  Batched CSV import completed: 100 total, 0 new, 0 updated, 100 unchanged, 0 failed
+INFO  Import completed for policyholders.csv: 100 total, 0 new, 0 updated, 100 unchanged, 0 failed
+```
+
+**File changed - mixed operations:**
+```
+INFO  Batched CSV import completed: 105 total, 5 new, 10 updated, 90 unchanged, 0 failed
+INFO  Import completed for policyholders.csv: 105 total, 5 new, 10 updated, 90 unchanged, 0 failed
+```
+
+### Performance Benefits
+
+**Database Efficiency:**
+- Skips unnecessary UPDATE operations for unchanged data
+- Only writes to database when data actually changes
+- Reduces database load on repeated imports
+
+**File Change Detection:**
+- Avoids reprocessing files that haven't changed
+- Uses file timestamp comparison (fast)
+- Downloads file only if potentially changed
+
+### Implementation Files
+
+| File | Purpose |
+|------|---------|
+| `config/SftpPollingFlowConfig.java` | Spring Integration SFTP polling flow |
+| `config/SftpImportProperties.java` | Configuration properties binding |
+| `config/AlwaysAcceptFileListFilter.java` | SFTP file filter (accepts all files) |
+| `service/CsvFileProcessor.java` | File processing with timestamp tracking |
+| `service/CsvImportService.java` | CSV parsing and database import |
+| `repository/DirectoryEntryRepository.java` | JPA repository with upsert method |
 
 ## Building the Directory Service
 

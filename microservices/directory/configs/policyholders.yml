@@ -9,9 +9,15 @@ directory:
     host: ${SFTP_HOST:localhost}
     port: ${SFTP_PORT:2222}
     username: ${SFTP_USERNAME:policyholder-importer}
-    private-key-path: ${SFTP_PRIVATE_KEY_PATH:./keys/sftp_client_key}
+    private-key-path: ${SFTP_PRIVATE_KEY_PATH:../../keys/sftp_client_key}
     remote-file-path: policyholders.csv
     connection-timeout: 10000
+    polling:
+      fixed-delay: 120000
+      initial-delay: 5000
+      batch-size: 500
+    local-directory: ../../temp/sftp-downloads
+    metadata-directory: ../../data/sftp-metadata
 
 spring:
   datasource:
