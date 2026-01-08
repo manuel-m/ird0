@@ -10,7 +10,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.integration.file.remote.session.CachingSessionFactory;
 import org.springframework.integration.file.remote.session.SessionFactory;
 import org.springframework.integration.sftp.session.DefaultSftpSessionFactory;
-import org.springframework.integration.sftp.session.SftpRemoteFileTemplate;
 
 @Slf4j
 @Configuration
@@ -47,11 +46,5 @@ public class SftpIntegrationConfig {
     factory.setTimeout(properties.getConnectionTimeout());
 
     return new CachingSessionFactory<>(factory);
-  }
-
-  @Bean
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public SftpRemoteFileTemplate sftpRemoteFileTemplate(SessionFactory sftpSessionFactory) {
-    return new SftpRemoteFileTemplate(sftpSessionFactory);
   }
 }

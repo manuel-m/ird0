@@ -1,20 +1,30 @@
 package com.ird0.directory.service;
 
+import com.ird0.directory.config.SftpImportProperties;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.integration.metadata.MetadataStore;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "directory.sftp-import", name = "enabled", havingValue = "true")
 public class CsvFileProcessor {
 
   private final CsvImportService csvImportService;
   private final MetadataStore metadataStore;
+  private final SftpImportProperties properties;
+  private final ImportErrorHandler errorHandler;
 
   public void processFile(File csvFile) {
     String filename = csvFile.getName();
@@ -57,11 +67,13 @@ public class CsvFileProcessor {
 
       metadataStore.put(filename, String.valueOf(currentTimestamp));
 
-    } catch (Exception e) {
-      log.error("Failed to process file {}: {}", filename, e.getMessage(), e);
-      throw new RuntimeException("CSV processing failed", e);
-    } finally {
+      if (properties.getRetry().isEnabled()) {
+        errorHandler.clearRetryCount(filename);
+      }
       deleteFile(csvFile);
+
+    } catch (Exception e) {
+      handleImportError(csvFile, filename, e);
     }
   }
 
@@ -71,6 +83,83 @@ public class CsvFileProcessor {
         log.debug("Deleted file: {}", csvFile.getName());
       } else {
         log.warn("Failed to delete file: {}", csvFile.getName());
+      }
+    }
+  }
+
+  private void handleImportError(File csvFile, String filename, Exception e) {
+    if (!properties.getRetry().isEnabled() || !properties.getErrorHandling().isEnabled()) {
+      log.error("Failed to process file {}: {}", filename, e.getMessage(), e);
+      deleteFile(csvFile);
+      throw new RuntimeException("CSV processing failed", e);
+    }
+
+    int retryCount = errorHandler.getRetryCount(filename);
+
+    if (retryCount >= properties.getRetry().getMaxAttempts()) {
+      try {
+        File dlqFile = errorHandler.moveToDeadLetterQueue(csvFile);
+        errorHandler.storeLastError(filename, e.getMessage());
+        log.error(
+            "Import failed after {} retries for file {}, moved to dead letter queue: {}",
+            retryCount,
+            filename,
+            dlqFile.getAbsolutePath(),
+            e);
+      } catch (IOException ioException) {
+        log.error("Failed to move file {} to dead letter queue", filename, ioException);
+        deleteFile(csvFile);
+      }
+    } else {
+      try {
+        errorHandler.incrementRetryCount(filename);
+        errorHandler.storeLastError(filename, e.getMessage());
+        File errorFile = errorHandler.moveToErrorDirectory(csvFile);
+        long retryDelay = errorHandler.calculateRetryDelay(retryCount + 1);
+        log.warn(
+            "Import failed for file {}, attempt {}/{}. Will retry. Moved to error directory: {}. Next retry in {}ms",
+            filename,
+            retryCount + 1,
+            properties.getRetry().getMaxAttempts(),
+            errorFile.getAbsolutePath(),
+            retryDelay,
+            e);
+      } catch (IOException ioException) {
+        log.error("Failed to move file {} to error directory", filename, ioException);
+        deleteFile(csvFile);
+      }
+    }
+  }
+
+  @EventListener(ApplicationReadyEvent.class)
+  public void scanErrorDirectoryOnStartup() {
+    if (!properties.getErrorHandling().isEnabled()) {
+      return;
+    }
+
+    File errorDir = new File(properties.getErrorHandling().getErrorDirectory());
+    if (!errorDir.exists()) {
+      return;
+    }
+
+    File[] errorFiles = errorDir.listFiles((dir, name) -> name.endsWith(".csv"));
+    if (errorFiles == null || errorFiles.length == 0) {
+      return;
+    }
+
+    log.info("Found {} files in error directory for retry processing", errorFiles.length);
+
+    for (File errorFile : errorFiles) {
+      String filename = errorFile.getName();
+
+      if (errorHandler.shouldRetry(filename)) {
+        try {
+          File localFile = new File(properties.getLocalDirectory(), filename);
+          Files.move(errorFile.toPath(), localFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+          log.info("Moved {} from error directory to local directory for retry", filename);
+        } catch (IOException e) {
+          log.error("Failed to move error file {} for retry", filename, e);
+        }
       }
     }
   }

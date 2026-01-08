@@ -12,7 +12,7 @@ import org.springframework.integration.dsl.MessageChannels;
 import org.springframework.integration.dsl.Pollers;
 import org.springframework.integration.file.remote.session.SessionFactory;
 import org.springframework.integration.metadata.MetadataStore;
-import org.springframework.integration.metadata.SimpleMetadataStore;
+import org.springframework.integration.metadata.PropertiesPersistingMetadataStore;
 import org.springframework.integration.sftp.dsl.Sftp;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -31,8 +31,9 @@ public class SftpPollingFlowConfig {
 
   @Bean
   public MetadataStore metadataStore() {
-    SimpleMetadataStore store = new SimpleMetadataStore();
-    log.info("MetadataStore configured (in-memory)");
+    PropertiesPersistingMetadataStore store = new PropertiesPersistingMetadataStore();
+    store.setBaseDirectory(properties.getMetadataDirectory());
+    log.info("MetadataStore configured (persistent): {}", properties.getMetadataDirectory());
     return store;
   }
 

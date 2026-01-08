@@ -14,7 +14,6 @@ public class SftpImportProperties {
   private int port = 2222;
   private String username = "policyholder-importer";
   private String privateKeyPath = "./keys/sftp_client_key";
-  private String remoteFilePath = "/policyholders.csv";
   private int connectionTimeout = 10000;
 
   private Polling polling = new Polling();
@@ -27,4 +26,23 @@ public class SftpImportProperties {
     private long initialDelay = 1000;
     private int batchSize = 500;
   }
+
+  @Data
+  public static class ErrorHandling {
+    private String errorDirectory = "./data/sftp-errors";
+    private String deadLetterDirectory = "./data/sftp-failed";
+    private boolean enabled = true;
+  }
+
+  @Data
+  public static class Retry {
+    private int maxAttempts = 3;
+    private long initialDelay = 5000;
+    private double backoffMultiplier = 1.5;
+    private long maxDelay = 300000;
+    private boolean enabled = true;
+  }
+
+  private ErrorHandling errorHandling = new ErrorHandling();
+  private Retry retry = new Retry();
 }

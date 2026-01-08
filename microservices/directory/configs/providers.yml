@@ -8,3 +8,6 @@ directory:
 spring:
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/providers_db
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.integration.IntegrationAutoConfiguration

@@ -29,50 +29,6 @@ public class CsvImportService {
       int totalRows, int newRows, int updatedRows, int unchangedRows, int failedRows) {}
 
   @Transactional
-  public ImportResult importFromCsv(InputStream csvData) throws IOException {
-    log.info("Starting CSV import");
-
-    List<DirectoryEntry> entries = new ArrayList<>();
-    int totalRows = 0;
-    int failedRows = 0;
-
-    try (Reader reader = new InputStreamReader(csvData);
-        CSVParser parser =
-            CSVFormat.DEFAULT
-                .builder()
-                .setHeader()
-                .setSkipHeaderRecord(true)
-                .setTrim(true)
-                .build()
-                .parse(reader)) {
-
-      for (CSVRecord record : parser) {
-        totalRows++;
-
-        try {
-          DirectoryEntry entry = parseRecord(record);
-          if (entry != null) {
-            entries.add(entry);
-          } else {
-            failedRows++;
-          }
-        } catch (Exception e) {
-          log.warn("Failed to parse CSV record {}: {}", record.getRecordNumber(), e.getMessage());
-          failedRows++;
-        }
-      }
-    }
-
-    if (!entries.isEmpty()) {
-      repository.saveAll(entries);
-      log.info("Successfully imported {} records from CSV", entries.size());
-    }
-
-    int successRows = totalRows - failedRows;
-    return new ImportResult(totalRows, successRows, 0, 0, failedRows);
-  }
-
-  @Transactional
   public ImportResult importFromCsvWithBatching(InputStream csvData) throws IOException {
     log.info("Starting batched CSV import with batch size: {}", BATCH_SIZE);
 
@@ -142,8 +98,7 @@ public class CsvImportService {
         || !java.util.Objects.equals(existing.getType(), newEntry.getType())
         || !java.util.Objects.equals(existing.getPhone(), newEntry.getPhone())
         || !java.util.Objects.equals(existing.getAddress(), newEntry.getAddress())
-        || !java.util.Objects.equals(
-            existing.getAdditionalInfo(), newEntry.getAdditionalInfo());
+        || !java.util.Objects.equals(existing.getAdditionalInfo(), newEntry.getAdditionalInfo());
   }
 
   private ImportResult upsertBatch(List<DirectoryEntry> entries) {
