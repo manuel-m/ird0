@@ -640,3 +640,156 @@ The `APP_YML` build argument selects which instance-specific configuration file 
 | SQL not logging | Ensure `show-sql: true` in application.yml |
 | Database does not exist | Check init script logs: `docker compose logs postgres` |
 | Connection pool exhausted | Increase `hikari.maximum-pool-size` or reduce concurrent requests |
+
+## UUID Primary Keys
+
+The service uses UUIDs for entity identification instead of auto-increment Long values.
+
+**Benefits:**
+- Globally unique identifiers across all instances
+- No ID conflicts when merging data
+- Better security (no sequential ID enumeration)
+- Distributed-friendly architecture
+
+**Implementation:**
+```java
+@Entity
+public class DirectoryEntry {
+    @Id
+    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
+    private UUID id;
+    
+    @PrePersist
+    public void generateId() {
+        if (this.id == null) {
+            this.id = UUID.randomUUID();
+        }
+    }
+}
+```
+
+**Generation:**
+- Application-generated via `@PrePersist` lifecycle callback
+- Called automatically before INSERT operations
+- PostgreSQL stores as native `uuid` type (128-bit)
+
+**Example UUID:**
+```
+c9088e6f-86a4-4001-9a6a-554510787dd9
+```
+
+## DTO Layer
+
+The service uses Data Transfer Objects (DTOs) to decouple API contracts from internal entity structure.
+
+### DirectoryEntryDTO
+
+```java
+public class DirectoryEntryDTO {
+    private UUID id;               // Nullable for create, present for read/update
+    @NotBlank private String name;       // Required
+    @NotBlank private String type;       // Required
+    @NotBlank @Email private String email;      // Required, validated
+    @NotBlank private String phone;      // Required
+    private String address;              // Optional
+    private String additionalInfo;       // Optional
+}
+```
+
+**Validation:**
+- `@NotBlank` on name, type, email, phone
+- `@Email` on email field
+- Validation errors return 400 Bad Request with clear messages
+
+**Example Validation Error:**
+```json
+{
+  "timestamp": "2026-01-09T...",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation failed for object='directoryEntryDTO'",
+  "errors": [
+    {
+      "field": "phone",
+      "defaultMessage": "Phone is required"
+    }
+  ]
+}
+```
+
+### MapStruct Mapping
+
+The service uses MapStruct for automatic DTO/entity mapping:
+
+**Mapper Interface:**
+`com.ird0.directory.mapper.DirectoryEntryMapper`
+
+**Methods:**
+- `toDTO(DirectoryEntry)` - Entity to DTO (GET responses)
+- `toEntity(DirectoryEntryDTO)` - DTO to Entity (POST create)
+- `updateEntityFromDTO(DTO, Entity)` - Partial update (PUT)
+- `toDTOList(List<DirectoryEntry>)` - Batch conversion
+
+**Configuration:**
+- Component model: Spring (auto-injected bean)
+- Null handling: Ignore null DTO fields (preserves entity state)
+- Generated at compile time (target/generated-sources/annotations)
+
+**Benefits:**
+- Compile-time type safety
+- No reflection overhead (plain method calls)
+- Automatic updates when model changes
+- Cleaner controller code
+
+## CSV Import REST Endpoint
+
+In addition to automatic SFTP polling, the service provides a REST endpoint for manual CSV upload.
+
+**Endpoint:**
+```
+POST /{base-path}/import
+Content-Type: multipart/form-data
+```
+
+**Examples:**
+- Policyholders: `POST http://localhost:8081/api/policyholders/import`
+- Experts: `POST http://localhost:8082/api/experts/import`
+- Providers: `POST http://localhost:8083/api/providers/import`
+
+**Usage:**
+```bash
+curl -X POST http://localhost:8081/api/policyholders/import \
+  -F "file=@policyholders.csv"
+```
+
+**Response:**
+```json
+{
+  "totalRows": 100,
+  "newRows": 50,
+  "updatedRows": 30,
+  "unchangedRows": 18,
+  "failedRows": 2
+}
+```
+
+**Processing:**
+- Reuses same logic as SFTP import
+- Batch processing (500 rows)
+- Change detection (new/updated/unchanged tracking)
+- Email-based upsert (INSERT...ON CONFLICT)
+- UUID generation automatic via @PrePersist
+
+**Validation:**
+- File must have .csv extension
+- Required fields: name, type, email, phone
+- Invalid rows are counted as failed
+
+**CSV Format:**
+```csv
+name,type,email,phone,address,additionalInfo
+John Doe,individual,john@example.com,555-1234,123 Main St,Account since 2020
+Smith Family,family,smith@example.com,555-5678,456 Oak Ave,Members: 4
+Acme Corp,corporate,acme@example.com,555-9012,789 Business Blvd,Industry: Tech
+```
+

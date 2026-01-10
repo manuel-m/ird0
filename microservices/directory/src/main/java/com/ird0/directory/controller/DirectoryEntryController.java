@@ -1,40 +1,85 @@
 package com.ird0.directory.controller;
 
+import com.ird0.directory.dto.DirectoryEntryDTO;
+import com.ird0.directory.mapper.DirectoryEntryMapper;
 import com.ird0.directory.model.DirectoryEntry;
+import com.ird0.directory.service.CsvImportService;
 import com.ird0.directory.service.DirectoryEntryService;
+import jakarta.validation.Valid;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @RestController
 @RequestMapping("${directory.api.base-path:/api/entries}")
 @RequiredArgsConstructor
 public class DirectoryEntryController {
 
   private final DirectoryEntryService service;
+  private final DirectoryEntryMapper mapper;
+  private final CsvImportService csvImportService;
 
   @GetMapping
-  public List<DirectoryEntry> getAll() {
-    return service.getAll();
+  public List<DirectoryEntryDTO> getAll() {
+    List<DirectoryEntry> entities = service.getAll();
+    return mapper.toDTOList(entities);
   }
 
   @GetMapping("/{id}")
-  public DirectoryEntry getOne(@PathVariable Long id) {
-    return service.getById(id);
+  public DirectoryEntryDTO getOne(@PathVariable UUID id) {
+    DirectoryEntry entity = service.getById(id);
+    return mapper.toDTO(entity);
   }
 
   @PostMapping
-  public DirectoryEntry create(@RequestBody DirectoryEntry entry) {
-    return service.create(entry);
+  public DirectoryEntryDTO create(@Valid @RequestBody DirectoryEntryDTO dto) {
+    DirectoryEntry entity = mapper.toEntity(dto);
+    DirectoryEntry saved = service.create(entity);
+    return mapper.toDTO(saved);
   }
 
   @PutMapping("/{id}")
-  public DirectoryEntry update(@PathVariable Long id, @RequestBody DirectoryEntry entry) {
-    return service.update(id, entry);
+  public DirectoryEntryDTO update(
+      @PathVariable UUID id, @Valid @RequestBody DirectoryEntryDTO dto) {
+    DirectoryEntry existing = service.getById(id);
+    mapper.updateEntityFromDTO(dto, existing);
+    DirectoryEntry updated = service.update(id, existing);
+    return mapper.toDTO(updated);
   }
 
   @DeleteMapping("/{id}")
-  public void delete(@PathVariable Long id) {
+  public void delete(@PathVariable UUID id) {
     service.delete(id);
+  }
+
+  @PostMapping("/import")
+  public ResponseEntity<CsvImportService.ImportResult> uploadCsv(
+      @RequestParam("file") MultipartFile file) {
+
+    if (file.isEmpty()) {
+      return ResponseEntity.badRequest().build();
+    }
+
+    String filename = file.getOriginalFilename();
+    if (filename == null || !filename.endsWith(".csv")) {
+      return ResponseEntity.badRequest().build();
+    }
+
+    try (InputStream inputStream = file.getInputStream()) {
+      CsvImportService.ImportResult result =
+          csvImportService.importFromCsvWithBatching(inputStream);
+      return ResponseEntity.ok(result);
+    } catch (IOException e) {
+      log.error("Failed to process uploaded CSV: {}", e.getMessage());
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
   }
 }

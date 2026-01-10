@@ -4,12 +4,13 @@ import com.ird0.directory.model.DirectoryEntry;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface DirectoryEntryRepository extends JpaRepository<DirectoryEntry, Long> {
+public interface DirectoryEntryRepository extends JpaRepository<DirectoryEntry, UUID> {
 
   Optional<DirectoryEntry> findByEmail(String email);
 
@@ -19,8 +20,8 @@ public interface DirectoryEntryRepository extends JpaRepository<DirectoryEntry, 
   @Query(
       value =
           """
-        INSERT INTO directory_entry (name, type, email, phone, address, additional_info)
-        VALUES (:#{#entry.name}, :#{#entry.type}, :#{#entry.email},
+        INSERT INTO directory_entry (id, name, type, email, phone, address, additional_info)
+        VALUES (CAST(:#{#entry.id} AS uuid), :#{#entry.name}, :#{#entry.type}, :#{#entry.email},
                 :#{#entry.phone}, :#{#entry.address}, :#{#entry.additionalInfo})
         ON CONFLICT (email) DO UPDATE SET
             name = EXCLUDED.name,

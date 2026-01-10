@@ -112,11 +112,13 @@ public class CsvImportService {
         java.util.Optional<DirectoryEntry> existing = repository.findByEmail(entry.getEmail());
 
         if (existing.isEmpty()) {
+          entry.generateId();
           repository.upsertByEmail(entry);
           newRows++;
         } else {
           DirectoryEntry existingEntry = existing.get();
           if (hasChanged(existingEntry, entry)) {
+            entry.generateId();
             repository.upsertByEmail(entry);
             updatedRows++;
           } else {

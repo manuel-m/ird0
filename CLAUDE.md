@@ -52,9 +52,10 @@ See [Data Generator Documentation](utilities/directory-data-generator/CLAUDE.md)
 - Java 21
 - Spring Boot 3.5.0
 - Spring Data JPA with Hibernate (directory service)
+- MapStruct 1.5.5 (DTO mapping in directory service)
 - Apache MINA SSHD 2.12.0 (SFTP server)
 - Spring Boot Actuator (health, metrics, info endpoints)
-- PostgreSQL 16 database (directory service only)
+- PostgreSQL 16 database with UUID primary keys (directory service)
 - Lombok for boilerplate reduction
 - Maven for build management
 - Docker multi-stage builds
