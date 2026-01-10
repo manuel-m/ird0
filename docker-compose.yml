@@ -22,6 +22,10 @@ services:
       - SFTP_PORT=2222
       - SFTP_USERNAME=policyholder-importer
       - SFTP_PRIVATE_KEY_PATH=/app/keys/sftp_client_key
+      - DIRECTORY_SFTP_IMPORT_LOCAL_DIRECTORY=/app/temp/sftp-downloads
+      - DIRECTORY_SFTP_IMPORT_METADATA_DIRECTORY=/app/data/sftp-metadata
+      - DIRECTORY_SFTP_IMPORT_ERROR_HANDLING_ERROR_DIRECTORY=/app/data/sftp-errors
+      - DIRECTORY_SFTP_IMPORT_ERROR_HANDLING_DEAD_LETTER_DIRECTORY=/app/data/sftp-failed
     volumes:
       - ./keys:/app/keys:ro
     networks:

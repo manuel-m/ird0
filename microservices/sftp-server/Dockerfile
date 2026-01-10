@@ -22,6 +22,9 @@ FROM eclipse-temurin:21-jdk-alpine
 ARG APP_YML=sftp.yml
 WORKDIR /app
 
+# Create a non-root user and group
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 # Create directories for data and keys
 RUN mkdir -p /app/data /app/keys
 
@@ -33,6 +36,12 @@ COPY microservices/sftp-server/configs/application.yml application.yml
 
 # Copy instance-specific configuration
 COPY microservices/sftp-server/configs/${APP_YML} instance.yml
+
+# Set ownership of application directory to non-root user
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
 
 # Expose SFTP port and management port
 EXPOSE 2222 9090
