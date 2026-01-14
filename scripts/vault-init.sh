@@ -120,14 +120,56 @@ docker compose exec vault sh -c '
 '
 
 echo ""
+# =============================================================================
+# SSH Certificate Authority Setup (Vault SSH Secrets Engine - CA Mode)
+# =============================================================================
+echo ""
+echo "Setting up SSH Certificate Authority..."
+
+# Enable SSH secrets engine for client certificate signing
+if ! vault_cmd secrets list 2>/dev/null | grep -q "ssh-client-signer/"; then
+    echo "Enabling SSH secrets engine at ssh-client-signer/..."
+    vault_cmd secrets enable -path=ssh-client-signer ssh
+fi
+
+# Generate CA signing key pair
+echo "Configuring SSH CA..."
+vault_cmd write ssh-client-signer/config/ca generate_signing_key=true 2>/dev/null || true
+
+# Create role for directory service (15 min TTL for high security)
+echo "Creating directory-service role for certificate signing..."
+vault_cmd write ssh-client-signer/roles/directory-service \
+    key_type=ca \
+    algorithm_signer=rsa-sha2-256 \
+    allow_user_certificates=true \
+    allowed_users="policyholder-importer" \
+    ttl=15m \
+    max_ttl=1h \
+    default_user="policyholder-importer"
+
+# Create SSH CA policy for directory service
+echo "Creating SSH CA policy..."
+vault_cmd policy write directory-service-ssh /vault/policies/directory-service-ssh.hcl
+
+echo "SSH Certificate Authority configured successfully!"
+echo "  - CA path: ssh-client-signer"
+echo "  - Role: directory-service (TTL: 15m, max: 1h)"
+echo "  - Allowed principal: policyholder-importer"
+
+echo ""
 echo "Vault initialization complete!"
 echo ""
 echo "Secrets stored:"
 echo "  - secret/ird0/database/postgres"
 echo "  - secret/ird0/sftp/host-key"
-echo "  - secret/ird0/sftp/client-key"
-echo "  - secret/ird0/sftp/authorized-keys"
+echo "  - secret/ird0/sftp/client-key (legacy - to be removed)"
+echo "  - secret/ird0/sftp/authorized-keys (legacy - to be removed)"
 echo "  - secret/ird0/sftp/known-hosts"
+echo ""
+echo "SSH CA configured:"
+echo "  - ssh-client-signer/config/ca (CA public key)"
+echo "  - ssh-client-signer/roles/directory-service (signing role)"
 echo ""
 echo "To verify, run:"
 echo "  docker compose exec vault vault kv list secret/ird0"
+echo "  docker compose exec vault vault read ssh-client-signer/config/ca"

@@ -34,7 +34,6 @@ The IRD0 platform consists of multiple microservices deployed as Docker containe
 - **Vault** (port 8200) - Optional secrets management (SSH keys, credentials)
 
 **Key Directories:**
-- `./keys/` - SSH keys (private and public keys, authorized_keys)
 - `./data/` - SFTP server data files (CSV)
 - `./temp/sftp-downloads/` - Local SFTP download directory
 - `./data/sftp-metadata/` - Import timestamp metadata
@@ -54,7 +53,7 @@ For detailed architecture, see [ARCHITECTURE.md](ARCHITECTURE.md)
 - **Docker** 24+ and Docker Compose v2
 - **RAM**: 4GB minimum
 - **Disk Space**: 10GB for containers and data
-- **Ports**: 8081-8083, 2222, 5432, 9090 must be available
+- **Ports**: 8081-8083, 2222, 5432, 8200, 9090 must be available
 
 ### Initial Setup
 
@@ -63,31 +62,26 @@ For detailed architecture, see [ARCHITECTURE.md](ARCHITECTURE.md)
 git clone <repository-url>
 cd ird0
 
-# Generate SSH keys for SFTP authentication (if not already present)
-# See section 6 "SSH Key Management" for detailed instructions
-if [ ! -f ./keys/sftp_client_key ]; then
-  mkdir -p keys
-  ssh-keygen -t rsa -b 4096 -f ./keys/sftp_client_key -N "" -C "policyholder-importer"
-  cat ./keys/sftp_client_key.pub > ./keys/authorized_keys
-  chmod 644 ./keys/sftp_client_key ./keys/sftp_client_key.pub ./keys/authorized_keys
-  echo "SSH keys generated"
-fi
+# Create .env file with required variables
+cp .env.example .env
 
-# Build and start all services
+# Build and start all services (includes Vault)
 docker compose up --build -d
 
-# Wait for SFTP server to start, then generate known_hosts
-sleep 10
-ssh-keyscan -p 2222 localhost 2>/dev/null | sed 's/\[localhost\]:2222/[sftp-server]:2222/' > ./keys/known_hosts
-ssh-keyscan -p 2222 localhost 2>/dev/null >> ./keys/known_hosts
-chmod 644 ./keys/known_hosts
+# Wait for Vault to be healthy
+sleep 15
 
-# Restart policyholders service to load known_hosts
-docker compose restart policyholders
+# Initialize Vault with SSH CA and secrets
+./scripts/vault-init.sh
+
+# Restart services to pick up Vault configuration
+docker compose restart policyholders sftp-server
 
 # Verify services
 docker compose ps
 ```
+
+**Note:** SSH authentication now uses ephemeral certificates from Vault SSH CA. No manual SSH key generation is required.
 
 ### Verification
 

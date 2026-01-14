@@ -1,6 +1,6 @@
 package com.ird0.sftp.config;
 
-import com.ird0.sftp.auth.PublicKeyAuthenticator;
+import com.ird0.sftp.auth.CertificateAuthenticator;
 import com.ird0.sftp.filesystem.ReadOnlyFileSystemFactory;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,7 +25,7 @@ public class SftpServerConfig {
 
   @Bean
   public SshServer sshServer(
-      PublicKeyAuthenticator publicKeyAuthenticator,
+      CertificateAuthenticator certificateAuthenticator,
       ReadOnlyFileSystemFactory fileSystemFactory,
       Optional<VaultHostKeyProvider> vaultHostKeyProvider)
       throws IOException {
@@ -38,8 +38,9 @@ public class SftpServerConfig {
     // Configure host key - use Vault if available, otherwise file-based
     configureHostKey(sshd, vaultHostKeyProvider);
 
-    // Set public key authenticator
-    sshd.setPublickeyAuthenticator(publicKeyAuthenticator);
+    // Set certificate authenticator (validates SSH certificates signed by Vault CA)
+    sshd.setPublickeyAuthenticator(certificateAuthenticator);
+    log.info("Certificate-based authentication enabled (Vault SSH CA mode)");
 
     // Disable password authentication
     sshd.setPasswordAuthenticator(null);

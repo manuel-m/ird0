@@ -1,17 +1,17 @@
 # Policy for Directory Services (Policyholders, Experts, Providers)
-# Allows reading database credentials and SFTP client keys
+# Allows reading database credentials and SSH certificate signing
 
 # Database credentials
 path "secret/data/ird0/database/postgres" {
   capabilities = ["read"]
 }
 
-# SFTP client private key (for connecting to SFTP server)
-path "secret/data/ird0/sftp/client-key" {
-  capabilities = ["read"]
+# Sign SSH public keys to get certificates (for SFTP authentication)
+path "ssh-client-signer/sign/directory-service" {
+  capabilities = ["create", "update"]
 }
 
-# Known hosts file (for SFTP server verification)
-path "secret/data/ird0/sftp/known-hosts" {
+# Read CA public key (for verification)
+path "ssh-client-signer/config/ca" {
   capabilities = ["read"]
 }

@@ -15,11 +15,15 @@ sftp:
     # Host key configuration (defaults to ./keys/hostkey.pem for local dev)
     host-key-path: ${SFTP_HOST_KEY_PATH:./keys/hostkey.pem}
 
-    # Authorized keys file (defaults to ./keys/authorized_keys for local dev)
-    authorized-keys-path: ${SFTP_AUTHORIZED_KEYS_PATH:./keys/authorized_keys}
-
     # Maximum number of concurrent SFTP sessions
     max-sessions: 10
 
     # Session timeout in milliseconds (15 minutes)
     session-timeout: 900000
+
+# Vault SSH CA configuration (certificate-based authentication)
+vault:
+  ssh:
+    ca:
+      # Enable certificate-based authentication using Vault SSH CA
+      enabled: ${VAULT_SSH_CA_ENABLED:true}

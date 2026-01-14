@@ -67,17 +67,15 @@ services:
       - SFTP_HOST=sftp-server
       - SFTP_PORT=2222
       - SFTP_USERNAME=policyholder-importer
-      - SFTP_PRIVATE_KEY_PATH=/app/keys/sftp_client_key
-      - SFTP_KNOWN_HOSTS_PATH=/app/keys/known_hosts
       - DIRECTORY_SFTP_IMPORT_LOCAL_DIRECTORY=/app/temp/sftp-downloads
       - DIRECTORY_SFTP_IMPORT_METADATA_DIRECTORY=/app/data/sftp-metadata
       - DIRECTORY_SFTP_IMPORT_ERROR_HANDLING_ERROR_DIRECTORY=/app/data/sftp-errors
       - DIRECTORY_SFTP_IMPORT_ERROR_HANDLING_DEAD_LETTER_DIRECTORY=/app/data/sftp-failed
-      - VAULT_ENABLED=${VAULT_ENABLED:-false}
+      # Vault configuration for SSH certificate signing
+      - VAULT_ENABLED=true
+      - VAULT_SSH_CA_ENABLED=true
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=${VAULT_DEV_TOKEN:-dev-root-token}
-    volumes:
-      - ./keys:/app/keys:ro
     networks:
       - insurance-network
 
@@ -198,6 +196,9 @@ services:
     ports:
       - "2222:2222"  # SFTP port
       - "9090:9090"  # Management/actuator port
+    depends_on:
+      vault:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "2222"]
       interval: 30s
@@ -207,8 +208,9 @@ services:
     environment:
       - SFTP_DATA_DIR=/app/data
       - SFTP_HOST_KEY_PATH=/app/keys/hostkey.pem
-      - SFTP_AUTHORIZED_KEYS_PATH=/app/keys/authorized_keys
-      - VAULT_ENABLED=${VAULT_ENABLED:-false}
+      # Vault configuration for SSH certificate authentication
+      - VAULT_ENABLED=true
+      - VAULT_SSH_CA_ENABLED=true
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=${VAULT_DEV_TOKEN:-dev-root-token}
     volumes:

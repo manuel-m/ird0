@@ -6,12 +6,16 @@ directory:
     base-path: /api/policyholders
   sftp-import:
     enabled: true
-    host: ${SFTP_HOST:localhost}
+    host: ${SFTP_HOST:sftp-server}
     port: ${SFTP_PORT:2222}
     username: ${SFTP_USERNAME:policyholder-importer}
-    private-key-path: ${SFTP_PRIVATE_KEY_PATH:../../keys/sftp_client_key}
-    known-hosts-path: ${SFTP_KNOWN_HOSTS_PATH:../../keys/known_hosts}
     connection-timeout: 10000
+    # Certificate configuration for Vault SSH CA
+    certificate:
+      ttl: 15m
+      renewal-threshold: 5m
+      principal: policyholder-importer
+      vault-role: directory-service
     polling:
       fixed-delay: 120000
       initial-delay: 5000
@@ -28,6 +32,12 @@ directory:
       initial-delay: 5000
       backoff-multiplier: 1.5
       max-delay: 300000
+
+# Vault SSH CA configuration
+vault:
+  ssh:
+    ca:
+      enabled: ${VAULT_SSH_CA_ENABLED:true}
 
 spring:
   datasource:
