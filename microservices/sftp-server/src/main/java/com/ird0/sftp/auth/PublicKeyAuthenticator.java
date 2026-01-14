@@ -1,6 +1,7 @@
 package com.ird0.sftp.auth;
 
 import com.ird0.sftp.config.SftpProperties;
+import com.ird0.sftp.config.VaultAuthorizedKeysLoader;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,6 +11,7 @@ import java.security.GeneralSecurityException;
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
@@ -24,10 +26,32 @@ import org.springframework.stereotype.Component;
 public class PublicKeyAuthenticator implements PublickeyAuthenticator {
 
   private final SftpProperties properties;
+  private final Optional<VaultAuthorizedKeysLoader> vaultAuthorizedKeysLoader;
   private final Map<String, PublicKey> authorizedKeys = new HashMap<>();
 
   @PostConstruct
   public void init() throws Exception {
+    // Try to load from Vault first
+    if (vaultAuthorizedKeysLoader.isPresent()) {
+      try {
+        Map<String, PublicKey> vaultKeys = vaultAuthorizedKeysLoader.get().loadAuthorizedKeys();
+        if (!vaultKeys.isEmpty()) {
+          authorizedKeys.putAll(vaultKeys);
+          log.info("Loaded {} authorized keys from Vault", vaultKeys.size());
+          return;
+        }
+        log.warn("No authorized keys found in Vault, falling back to file");
+      } catch (Exception e) {
+        log.warn(
+            "Failed to load authorized keys from Vault: {}, falling back to file", e.getMessage());
+      }
+    }
+
+    // Fall back to file-based authorized keys
+    loadFromFile();
+  }
+
+  private void loadFromFile() throws Exception {
     Path keysFile = Paths.get(properties.getServer().getAuthorizedKeysPath());
 
     // Critical: File must exist

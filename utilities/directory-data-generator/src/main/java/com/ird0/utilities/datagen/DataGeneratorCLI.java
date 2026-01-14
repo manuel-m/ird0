@@ -5,12 +5,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;

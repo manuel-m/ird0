@@ -1,6 +1,21 @@
 # Common configuration shared across all directory service instances
 
 spring:
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    vault:
+      enabled: ${VAULT_ENABLED:false}
+      uri: ${VAULT_ADDR:http://vault:8200}
+      authentication: TOKEN
+      token: ${VAULT_TOKEN:${VAULT_DEV_TOKEN:dev-root-token}}
+      kv:
+        enabled: true
+        backend: secret
+        default-context: ird0
+      connection-timeout: 5000
+      read-timeout: 15000
+      fail-fast: false
   datasource:
     driver-class-name: org.postgresql.Driver
     username: ${POSTGRES_USER:directory_user}

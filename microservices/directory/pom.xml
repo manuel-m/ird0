@@ -39,6 +39,18 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Spring Cloud Vault -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-vault-config</artifactId>
+        </dependency>
+
+        <!-- Bootstrap context for Spring Cloud (required for bootstrap.yml) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+        </dependency>
+
         <!-- Lombok (simplifies DTO/Entity) -->
         <dependency>
             <groupId>org.projectlombok</groupId>

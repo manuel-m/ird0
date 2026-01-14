@@ -10,6 +10,7 @@ This guide provides comprehensive operational procedures for administrators, Dev
 4. [Database Management](#4-database-management)
 5. [SFTP Import Operations](#5-sftp-import-operations)
 6. [SSH Key Management](#6-ssh-key-management)
+   - [HashiCorp Vault Integration](#65-hashicorp-vault-integration)
 7. [Configuration Management](#7-configuration-management)
 8. [Monitoring and Health Checks](#8-monitoring-and-health-checks)
 9. [Backup and Restore](#9-backup-and-restore)
@@ -30,6 +31,7 @@ The IRD0 platform consists of multiple microservices deployed as Docker containe
 - **Providers** (port 8083) - REST API for provider data
 - **SFTP Server** (port 2222) - Secure file transfer for CSV files
 - **PostgreSQL** (port 5432) - Database for all directory services
+- **Vault** (port 8200) - Optional secrets management (SSH keys, credentials)
 
 **Key Directories:**
 - `./keys/` - SSH keys (private and public keys, authorized_keys)
@@ -504,6 +506,180 @@ The third field must match the username in SFTP configuration.
   - For non-Docker environments, use 600 for private keys and authorized_keys
 - ✅ Monitor `authorized_keys` for unauthorized additions
 - ✅ Regenerate `known_hosts` file when SFTP server host key changes
+
+---
+
+## 6.5. HashiCorp Vault Integration
+
+The platform optionally integrates with HashiCorp Vault for centralized secrets management. When enabled, SSH keys and credentials are loaded from Vault instead of local files.
+
+### Overview
+
+**Benefits of Vault Integration:**
+- Centralized secret management across all services
+- Persistent host keys (no regeneration on container restart)
+- Audit trail for secret access
+- Simplified key rotation
+- Enhanced security (secrets not stored in files)
+
+**Operation Modes:**
+- **Vault Disabled** (default): Services use file-based keys from `./keys/`
+- **Vault Enabled**: Services load secrets from Vault with file fallback
+
+### Enabling/Disabling Vault
+
+**Via Environment Variables:**
+```bash
+# Enable Vault
+VAULT_ENABLED=true docker compose up -d
+
+# Disable Vault (default)
+VAULT_ENABLED=false docker compose up -d
+```
+
+**Via .env File:**
+```bash
+# Create .env from template
+cp .env.example .env
+
+# Edit to enable/disable
+VAULT_ENABLED=true  # or false
+```
+
+### Vault Initialization
+
+After first cluster start, Vault must be initialized with secrets:
+
+```bash
+# Start the cluster
+docker compose up -d
+
+# Wait for Vault to be healthy
+docker compose exec vault vault status
+
+# Run initialization script
+./scripts/vault-init.sh
+
+# Restart services to pick up Vault secrets
+docker compose restart policyholders sftp-server
+```
+
+**What vault-init.sh Does:**
+1. Enables KV v2 secrets engine
+2. Creates service access policies
+3. Stores database credentials
+4. Generates and stores SFTP host key
+5. Stores SFTP client key from `./keys/sftp_client_key`
+6. Stores authorized keys from `./keys/authorized_keys`
+7. Generates known_hosts entry
+
+### Vault Secret Paths
+
+| Path | Description | Used By |
+|------|-------------|---------|
+| `secret/ird0/database/postgres` | Database credentials | Directory services |
+| `secret/ird0/sftp/host-key` | SFTP server RSA private key | SFTP server |
+| `secret/ird0/sftp/client-key` | SFTP client private key | Policyholders service |
+| `secret/ird0/sftp/authorized-keys` | Authorized public keys | SFTP server |
+| `secret/ird0/sftp/known-hosts` | Known hosts entry | Policyholders service |
+
+### Vault UI Access
+
+Access the Vault web interface at `http://localhost:8200`:
+- Token: Use the value of `VAULT_DEV_TOKEN` (default: `dev-root-token`)
+- Navigate to Secrets > secret > ird0 to view stored secrets
+
+### Verifying Vault Status
+
+```bash
+# Check Vault health
+curl http://localhost:8200/v1/sys/health
+
+# Check Vault status via CLI
+docker compose exec vault vault status
+
+# List secrets (requires authentication)
+docker compose exec -e VAULT_TOKEN=dev-root-token vault vault kv list secret/ird0
+```
+
+### Manual Secret Management
+
+All vault commands are run inside the Vault container using `docker compose exec`. No local vault CLI installation is required.
+
+**Read a secret:**
+```bash
+docker compose exec -e VAULT_TOKEN=dev-root-token vault vault kv get secret/ird0/sftp/host-key
+```
+
+**Update a secret:**
+```bash
+docker compose exec -T -e VAULT_TOKEN=dev-root-token vault sh -c \
+    'vault kv put secret/ird0/sftp/client-key private_key="$(cat -)"' < ./keys/new_client_key
+```
+
+**Store new authorized keys:**
+```bash
+docker compose exec -T -e VAULT_TOKEN=dev-root-token vault sh -c \
+    'vault kv put secret/ird0/sftp/authorized-keys content="$(cat -)"' < ./keys/authorized_keys
+```
+
+### Graceful Fallback Behavior
+
+When Vault is enabled but secrets are missing, services fall back to file-based keys:
+
+| Component | Vault Missing | Behavior |
+|-----------|---------------|----------|
+| SFTP Client Key | Falls back to `./keys/sftp_client_key` | Logged as warning |
+| Known Hosts | Falls back to `./keys/known_hosts` | Logged as warning |
+| Authorized Keys | Falls back to `./keys/authorized_keys` | Logged as warning |
+| Host Key | Falls back to auto-generation | Uses `./keys/hostkey.pem` |
+
+### Troubleshooting Vault
+
+**Vault not starting:**
+```bash
+# Check logs
+docker compose logs vault
+
+# Verify port is available
+netstat -tuln | grep 8200
+```
+
+**Services not connecting to Vault:**
+```bash
+# Check Vault health from service network
+docker compose exec policyholders wget -qO- http://vault:8200/v1/sys/health
+
+# Verify VAULT_ENABLED is set
+docker compose exec policyholders env | grep VAULT
+```
+
+**Secrets not found:**
+```bash
+# Check if secrets exist
+docker compose exec vault vault kv list secret/ird0
+
+# Re-run initialization
+./scripts/vault-init.sh
+```
+
+**Authentication failed:**
+```bash
+# Verify token matches
+echo $VAULT_DEV_TOKEN
+docker compose exec vault vault token lookup
+```
+
+### Production Considerations
+
+For production deployments:
+- Use Vault in server mode (not dev mode)
+- Enable TLS for Vault communication
+- Use AppRole or Kubernetes authentication instead of tokens
+- Store Vault unseal keys securely
+- Enable audit logging
+- Implement secret rotation policies
+- Use separate Vault clusters per environment
 
 ---
 
@@ -1001,6 +1177,7 @@ head ./data/policyholders.csv
 | SFTP Server | 2222 | SFTP | File transfer |
 | SFTP Actuator | 9090 | HTTP | Health and metrics |
 | PostgreSQL | 5432 | PostgreSQL | Database |
+| Vault | 8200 | HTTP | Secrets management (optional) |
 
 ### B. Directory Structure
 
@@ -1074,11 +1251,15 @@ docker system prune -a                      # Clean up unused Docker resources
 | `SFTP_PORT` | 2222 | SFTP server port |
 | `SFTP_USERNAME` | policyholder-importer | SFTP username |
 | `SFTP_PRIVATE_KEY_PATH` | ./keys/sftp_client_key | Client private key path |
+| `VAULT_ENABLED` | false | Enable Vault integration |
+| `VAULT_ADDR` | http://vault:8200 | Vault server address |
+| `VAULT_TOKEN` | (from VAULT_DEV_TOKEN) | Vault authentication token |
+| `VAULT_DEV_TOKEN` | dev-root-token | Development root token |
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2026-01-10
+**Document Version**: 1.1
+**Last Updated**: 2026-01-14
 **Maintainer**: DevOps Team
 
 For technical architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md)

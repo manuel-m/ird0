@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.sshd.server.SshServer;
@@ -24,7 +25,9 @@ public class SftpServerConfig {
 
   @Bean
   public SshServer sshServer(
-      PublicKeyAuthenticator publicKeyAuthenticator, ReadOnlyFileSystemFactory fileSystemFactory)
+      PublicKeyAuthenticator publicKeyAuthenticator,
+      ReadOnlyFileSystemFactory fileSystemFactory,
+      Optional<VaultHostKeyProvider> vaultHostKeyProvider)
       throws IOException {
 
     SshServer sshd = SshServer.setUpDefaultServer();
@@ -32,8 +35,8 @@ public class SftpServerConfig {
     // Set SFTP port
     sshd.setPort(properties.getServer().getPort());
 
-    // Configure host key
-    configureHostKey(sshd);
+    // Configure host key - use Vault if available, otherwise file-based
+    configureHostKey(sshd, vaultHostKeyProvider);
 
     // Set public key authenticator
     sshd.setPublickeyAuthenticator(publicKeyAuthenticator);
@@ -59,7 +62,19 @@ public class SftpServerConfig {
     return sshd;
   }
 
-  private void configureHostKey(SshServer sshd) throws IOException {
+  private void configureHostKey(SshServer sshd, Optional<VaultHostKeyProvider> vaultHostKeyProvider)
+      throws IOException {
+    if (vaultHostKeyProvider.isPresent()) {
+      // Use Vault-provided host key
+      sshd.setKeyPairProvider(vaultHostKeyProvider.get());
+      log.info("Host key configured from Vault");
+    } else {
+      // Fall back to file-based host key
+      configureFileBasedHostKey(sshd);
+    }
+  }
+
+  private void configureFileBasedHostKey(SshServer sshd) throws IOException {
     Path hostKeyPath = Paths.get(properties.getServer().getHostKeyPath());
 
     // Create parent directory if it doesn't exist
