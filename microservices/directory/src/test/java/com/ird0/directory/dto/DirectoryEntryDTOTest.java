@@ -44,8 +44,7 @@ class DirectoryEntryDTOTest {
 
     assertFalse(violations.isEmpty(), "Should have validation violations");
     assertTrue(
-        violations.stream()
-            .anyMatch(v -> v.getPropertyPath().toString().equals("name")),
+        violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("name")),
         "Should have violation for name field");
   }
 
@@ -60,9 +59,7 @@ class DirectoryEntryDTOTest {
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 
     assertFalse(violations.isEmpty());
-    assertTrue(
-        violations.stream()
-            .anyMatch(v -> v.getPropertyPath().toString().equals("name")));
+    assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("name")));
   }
 
   @Test
@@ -75,9 +72,7 @@ class DirectoryEntryDTOTest {
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 
     assertFalse(violations.isEmpty());
-    assertTrue(
-        violations.stream()
-            .anyMatch(v -> v.getPropertyPath().toString().equals("email")));
+    assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("email")));
   }
 
   @Test
@@ -110,9 +105,7 @@ class DirectoryEntryDTOTest {
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 
     assertFalse(violations.isEmpty());
-    assertTrue(
-        violations.stream()
-            .anyMatch(v -> v.getPropertyPath().toString().equals("phone")));
+    assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("phone")));
   }
 
   @Test
@@ -127,9 +120,7 @@ class DirectoryEntryDTOTest {
 
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 
-    assertTrue(
-        violations.isEmpty(),
-        "Optional fields (address, additionalInfo) can be null");
+    assertTrue(violations.isEmpty(), "Optional fields (address, additionalInfo) can be null");
   }
 
   @Test

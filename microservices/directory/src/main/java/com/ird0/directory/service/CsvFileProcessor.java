@@ -72,7 +72,7 @@ public class CsvFileProcessor {
       }
       deleteFile(csvFile);
 
-    } catch (Exception e) {
+    } catch (IOException | RuntimeException e) {
       handleImportError(csvFile, filename, e);
     }
   }

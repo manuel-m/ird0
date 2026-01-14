@@ -2,9 +2,11 @@ package com.ird0.sftp.auth;
 
 import com.ird0.sftp.config.SftpProperties;
 import jakarta.annotation.PostConstruct;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
@@ -83,7 +85,7 @@ public class PublicKeyAuthenticator implements PublickeyAuthenticator {
         validEntries++;
         log.info("Loaded authorized key for user: {}", username);
 
-      } catch (Exception e) {
+      } catch (IOException | GeneralSecurityException | IllegalArgumentException e) {
         log.error("Line {}: Failed to parse authorized key: {}", lineNumber, e.getMessage());
       }
     }

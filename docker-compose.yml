@@ -6,8 +6,16 @@ services:
       args:
         APP_YML: policyholders.yml
     image: directory-policyholders
+    restart: unless-stopped
     ports:
       - "8081:8081"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
     depends_on:
       postgres:
         condition: service_healthy
@@ -22,12 +30,13 @@ services:
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
-      - POSTGRES_USER=directory_user
-      - POSTGRES_PASSWORD=directory_pass
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - SFTP_HOST=sftp-server
       - SFTP_PORT=2222
       - SFTP_USERNAME=policyholder-importer
       - SFTP_PRIVATE_KEY_PATH=/app/keys/sftp_client_key
+      - SFTP_KNOWN_HOSTS_PATH=/app/keys/known_hosts
       - DIRECTORY_SFTP_IMPORT_LOCAL_DIRECTORY=/app/temp/sftp-downloads
       - DIRECTORY_SFTP_IMPORT_METADATA_DIRECTORY=/app/data/sftp-metadata
       - DIRECTORY_SFTP_IMPORT_ERROR_HANDLING_ERROR_DIRECTORY=/app/data/sftp-errors
@@ -44,8 +53,16 @@ services:
       args:
         APP_YML: experts.yml
     image: directory-experts
+    restart: unless-stopped
     ports:
       - "8082:8082"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,8 +75,8 @@ services:
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
-      - POSTGRES_USER=directory_user
-      - POSTGRES_PASSWORD=directory_pass
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
       - insurance-network
 
@@ -70,8 +87,16 @@ services:
       args:
         APP_YML: providers.yml
     image: directory-providers
+    restart: unless-stopped
     ports:
       - "8083:8083"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,16 +109,24 @@ services:
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
-      - POSTGRES_USER=directory_user
-      - POSTGRES_PASSWORD=directory_pass
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
       - insurance-network
 
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
     environment:
-      POSTGRES_USER: directory_user
-      POSTGRES_PASSWORD: directory_pass
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_MULTIPLE_DATABASES: policyholders_db,experts_db,providers_db
     ports:
       - "5432:5432"
@@ -115,6 +148,14 @@ services:
       args:
         APP_YML: sftp.yml
     image: sftp-server
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          memory: 128M
     ports:
       - "2222:2222"  # SFTP port
       - "9090:9090"  # Management/actuator port

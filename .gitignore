@@ -31,3 +31,6 @@ data
 keys/*
 !keys/authorized_keys.example
 !keys/.gitkeep
+
+# Environment files with secrets
+.env

@@ -61,8 +61,27 @@ For detailed architecture, see [ARCHITECTURE.md](ARCHITECTURE.md)
 git clone <repository-url>
 cd ird0
 
+# Generate SSH keys for SFTP authentication (if not already present)
+# See section 6 "SSH Key Management" for detailed instructions
+if [ ! -f ./keys/sftp_client_key ]; then
+  mkdir -p keys
+  ssh-keygen -t rsa -b 4096 -f ./keys/sftp_client_key -N "" -C "policyholder-importer"
+  cat ./keys/sftp_client_key.pub > ./keys/authorized_keys
+  chmod 644 ./keys/sftp_client_key ./keys/sftp_client_key.pub ./keys/authorized_keys
+  echo "SSH keys generated"
+fi
+
 # Build and start all services
 docker compose up --build -d
+
+# Wait for SFTP server to start, then generate known_hosts
+sleep 10
+ssh-keyscan -p 2222 localhost 2>/dev/null | sed 's/\[localhost\]:2222/[sftp-server]:2222/' > ./keys/known_hosts
+ssh-keyscan -p 2222 localhost 2>/dev/null >> ./keys/known_hosts
+chmod 644 ./keys/known_hosts
+
+# Restart policyholders service to load known_hosts
+docker compose restart policyholders
 
 # Verify services
 docker compose ps
@@ -399,13 +418,22 @@ ssh-keygen -t rsa -b 4096 -f ./keys/sftp_client_key -N "" -C "policyholder-impor
 # Add public key to SFTP server
 cat ./keys/sftp_client_key.pub >> ./keys/authorized_keys
 
-# Set correct permissions
-chmod 600 ./keys/sftp_client_key
+# Set correct permissions (644 for Docker containers with non-root users)
+chmod 644 ./keys/sftp_client_key
 chmod 644 ./keys/sftp_client_key.pub
-chmod 600 ./keys/authorized_keys
+chmod 644 ./keys/authorized_keys
+
+# Generate known_hosts file with SFTP server fingerprint
+# (Do this after SFTP server is running)
+ssh-keyscan -p 2222 localhost 2>/dev/null | sed 's/\[localhost\]:2222/[sftp-server]:2222/' > ./keys/known_hosts
+ssh-keyscan -p 2222 localhost 2>/dev/null >> ./keys/known_hosts
+chmod 644 ./keys/known_hosts
 ```
 
-**⚠️ Important:** Only RSA keys are supported. Ed25519 keys will fail with "No decoder available".
+**⚠️ Important:**
+- Only RSA keys are supported. Ed25519 keys will fail with "No decoder available".
+- Use **644 permissions** (not 600) for Docker environments - containers run as non-root users and need read access.
+- The `known_hosts` file must include entries for both `[sftp-server]:2222` (Docker network) and `[localhost]:2222` (local testing).
 
 ### Authorized Keys Format
 
@@ -423,14 +451,45 @@ The third field must match the username in SFTP configuration.
 
 ### Key Rotation Procedure (Zero Downtime)
 
-1. Generate new key pair
-2. Add new public key to `authorized_keys` (keep old key)
-3. Update `docker-compose.yml` environment variable if needed
-4. Restart policyholders service
-5. Verify SFTP import works with new key
-6. Remove old public key from `authorized_keys`
-7. Restart SFTP server
-8. Delete old private key securely
+1. Generate new key pair with correct permissions
+   ```bash
+   ssh-keygen -t rsa -b 4096 -f ./keys/sftp_client_key_new -N "" -C "policyholder-importer"
+   chmod 644 ./keys/sftp_client_key_new
+   chmod 644 ./keys/sftp_client_key_new.pub
+   ```
+2. Add new public key to `authorized_keys` (keep old key for transition)
+   ```bash
+   cat ./keys/sftp_client_key_new.pub >> ./keys/authorized_keys
+   chmod 644 ./keys/authorized_keys
+   ```
+3. Restart SFTP server to load new authorized key
+   ```bash
+   docker compose restart sftp-server
+   ```
+4. Update known_hosts with new server host key (if server regenerated)
+   ```bash
+   ssh-keyscan -p 2222 localhost 2>/dev/null | sed 's/\[localhost\]:2222/[sftp-server]:2222/' > ./keys/known_hosts
+   ssh-keyscan -p 2222 localhost 2>/dev/null >> ./keys/known_hosts
+   chmod 644 ./keys/known_hosts
+   ```
+5. Replace old key with new key
+   ```bash
+   mv ./keys/sftp_client_key_new ./keys/sftp_client_key
+   mv ./keys/sftp_client_key_new.pub ./keys/sftp_client_key.pub
+   ```
+6. Restart policyholders service
+   ```bash
+   docker compose restart policyholders
+   ```
+7. Verify SFTP import works with new key
+   ```bash
+   docker compose logs -f policyholders | grep "Import completed"
+   ```
+8. Remove old public key from `authorized_keys` and restart SFTP server
+9. Delete old private key securely
+   ```bash
+   shred -vfz ./keys/sftp_client_key.old
+   ```
 
 **Downtime:** Zero (both keys work during transition)
 
@@ -440,8 +499,11 @@ The third field must match the username in SFTP configuration.
 - ✅ Use `.gitignore` for `keys/` directory
 - ✅ Rotate keys every 90 days
 - ✅ Use separate keys per environment (dev/staging/prod)
-- ✅ Set correct permissions: 600 for private keys, 644 for public keys
+- ✅ Set correct permissions for **Docker environments**: 644 for all key files (private keys, public keys, authorized_keys, known_hosts)
+  - **Why 644?** Containers run as non-root users who need read access. Traditional 600 permissions will cause "Permission denied" errors.
+  - For non-Docker environments, use 600 for private keys and authorized_keys
 - ✅ Monitor `authorized_keys` for unauthorized additions
+- ✅ Regenerate `known_hosts` file when SFTP server host key changes
 
 ---
 
@@ -775,11 +837,12 @@ docker compose exec policyholders ls -la /app/data/sftp-metadata
 # Check key format and permissions
 ls -la ./keys/sftp_client_key*
 ls -la ./keys/authorized_keys
+ls -la ./keys/known_hosts
 
 # Verify key is RSA (not Ed25519)
 head -n1 ./keys/sftp_client_key.pub
 
-# Check authorized_keys format
+# Check authorized_keys format (should have 3 fields)
 cat ./keys/authorized_keys
 
 # Test with verbose output
@@ -787,11 +850,39 @@ sftp -vvv -i ./keys/sftp_client_key -P 2222 policyholder-importer@localhost
 ```
 
 **Common causes:**
-- Wrong key permissions (must be 600 for private key)
+- **Wrong key permissions** - In Docker, all key files must be **644** (readable by non-root container users)
 - Using Ed25519 keys (only RSA supported)
-- Wrong authorized_keys format (must have 3 fields)
-- Username mismatch in authorized_keys
+- Wrong authorized_keys format (must have 3 fields: key-type, key-data, username)
+- Username mismatch in authorized_keys (third field must match SFTP username)
 - Key not mounted in container
+- Missing or outdated known_hosts file
+- Host key changed (regenerate known_hosts)
+
+### SSH Key Permission Issues
+
+**Symptoms:**
+- SFTP server fails with "Authorized keys file is not readable"
+- Policyholders service fails with "AccessDeniedException" for sftp_client_key
+- "Server key did not validate" errors
+
+**Solution:**
+```bash
+# Set correct permissions for Docker (644 for all key files)
+chmod 644 ./keys/sftp_client_key
+chmod 644 ./keys/sftp_client_key.pub
+chmod 644 ./keys/authorized_keys
+chmod 644 ./keys/known_hosts
+
+# Regenerate known_hosts if host key changed
+ssh-keyscan -p 2222 localhost 2>/dev/null | sed 's/\[localhost\]:2222/[sftp-server]:2222/' > ./keys/known_hosts
+ssh-keyscan -p 2222 localhost 2>/dev/null >> ./keys/known_hosts
+chmod 644 ./keys/known_hosts
+
+# Restart services
+docker compose restart sftp-server policyholders
+```
+
+**Why 644?** Docker containers run as non-root users (appuser) who need read access to key files. Traditional 600 permissions prevent the container user from reading the files.
 
 ### CSV Import Errors
 

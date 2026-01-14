@@ -1,0 +1,13 @@
+# Development profile configuration - enables verbose logging for debugging
+
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    com.ird0.directory: DEBUG
+    org.springframework.integration: DEBUG

@@ -5,8 +5,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -18,6 +22,7 @@ import picocli.CommandLine.Parameters;
  * <p>Usage: java -jar policyholder-data-generator.jar java -jar policyholder-data-generator.jar 500
  * java -jar policyholder-data-generator.jar 100 -o custom-output.csv
  */
+@Slf4j
 @Command(
     name = "data-generator",
     mixinStandardHelpOptions = true,
@@ -67,8 +72,7 @@ public class DataGeneratorCLI implements Callable<Integer> {
       System.err.println("Error writing CSV file: " + e.getMessage());
       return 1;
     } catch (Exception e) {
-      System.err.println("Unexpected error: " + e.getMessage());
-      e.printStackTrace();
+      log.error("Unexpected error", e);
       return 1;
     }
   }

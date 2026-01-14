@@ -10,6 +10,7 @@ directory:
     port: ${SFTP_PORT:2222}
     username: ${SFTP_USERNAME:policyholder-importer}
     private-key-path: ${SFTP_PRIVATE_KEY_PATH:../../keys/sftp_client_key}
+    known-hosts-path: ${SFTP_KNOWN_HOSTS_PATH:../../keys/known_hosts}
     connection-timeout: 10000
     polling:
       fixed-delay: 120000

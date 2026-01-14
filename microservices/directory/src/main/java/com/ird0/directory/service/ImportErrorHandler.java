@@ -63,33 +63,25 @@ public class ImportErrorHandler {
   }
 
   public File moveToErrorDirectory(File file) throws IOException {
-    ensureDirectoryExists(properties.getErrorHandling().getErrorDirectory());
-
-    File errorDir = new File(properties.getErrorHandling().getErrorDirectory());
-    File destination = new File(errorDir, file.getName());
-
-    Files.move(file.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
-    log.debug(
-        "Moved file {} to error directory: {}", file.getName(), destination.getAbsolutePath());
-    return destination;
+    return moveFile(file, properties.getErrorHandling().getErrorDirectory(), file.getName());
   }
 
   public File moveToDeadLetterQueue(File file) throws IOException {
-    ensureDirectoryExists(properties.getErrorHandling().getDeadLetterDirectory());
-
     String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
     String baseFilename = file.getName();
     int dotIndex = baseFilename.lastIndexOf('.');
     String name = dotIndex > 0 ? baseFilename.substring(0, dotIndex) : baseFilename;
     String extension = dotIndex > 0 ? baseFilename.substring(dotIndex) : "";
-
     String dlqFilename = name + "_failed_" + timestamp + extension;
-    File dlqDir = new File(properties.getErrorHandling().getDeadLetterDirectory());
-    File destination = new File(dlqDir, dlqFilename);
 
-    Files.move(file.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
-    log.debug(
-        "Moved file {} to dead letter queue: {}", file.getName(), destination.getAbsolutePath());
+    return moveFile(file, properties.getErrorHandling().getDeadLetterDirectory(), dlqFilename);
+  }
+
+  private File moveFile(File source, String targetDir, String targetFilename) throws IOException {
+    ensureDirectoryExists(targetDir);
+    File destination = new File(targetDir, targetFilename);
+    Files.move(source.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
+    log.debug("Moved file {} to: {}", source.getName(), destination.getAbsolutePath());
     return destination;
   }
 

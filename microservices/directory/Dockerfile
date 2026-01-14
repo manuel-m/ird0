@@ -45,4 +45,7 @@ RUN mkdir -p /app/temp/sftp-downloads \
 # Switch to non-root user
 USER appuser
 
+# Document the port the service listens on
+EXPOSE 8081
+
 ENTRYPOINT ["java", "-jar", "app.jar", "--spring.config.location=file:/app/application.yml,file:/app/instance.yml"]

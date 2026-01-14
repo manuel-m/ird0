@@ -37,9 +37,6 @@ class DirectoryEntryTest {
     entry1.generateId();
     entry2.generateId();
 
-    assertNotEquals(
-        entry1.getId(),
-        entry2.getId(),
-        "Generated UUIDs should be unique");
+    assertNotEquals(entry1.getId(), entry2.getId(), "Generated UUIDs should be unique");
   }
 }

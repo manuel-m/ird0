@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CsvImportService {
 
   private static final int BATCH_SIZE = 500;
+  private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
   private final DirectoryEntryRepository repository;
 
   public record ImportResult(
@@ -62,7 +63,7 @@ public class CsvImportService {
           } else {
             failedRows++;
           }
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
           log.warn("Failed to parse record {}: {}", record.getRecordNumber(), e.getMessage());
           failedRows++;
         }
@@ -125,7 +126,7 @@ public class CsvImportService {
             unchangedRows++;
           }
         }
-      } catch (Exception e) {
+      } catch (org.springframework.dao.DataAccessException | IllegalStateException e) {
         log.warn("Failed to process entry with email {}: {}", entry.getEmail(), e.getMessage());
         failedRows++;
       }
@@ -161,6 +162,11 @@ public class CsvImportService {
       log.warn(
           "Skipping record {} - missing required fields (name, type, email, phone)",
           record.getRecordNumber());
+      return null;
+    }
+
+    if (!email.matches(EMAIL_REGEX)) {
+      log.warn("Skipping record {} - invalid email format: {}", record.getRecordNumber(), email);
       return null;
     }
 

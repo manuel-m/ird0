@@ -1,0 +1,11 @@
+.git
+.gitignore
+.idea
+*.md
+target/
+keys/*
+!keys/.gitkeep
+data/
+temp/
+.env
+*.log

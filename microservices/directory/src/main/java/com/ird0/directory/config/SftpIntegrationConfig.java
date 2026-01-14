@@ -26,21 +26,26 @@ public class SftpIntegrationConfig {
     factory.setHost(properties.getHost());
     factory.setPort(properties.getPort());
     factory.setUser(properties.getUsername());
-    factory.setAllowUnknownKeys(true);
+    // Configure host key verification using known_hosts file
+    File knownHostsFile = new File(properties.getKnownHostsPath());
+    if (knownHostsFile.exists()) {
+      factory.setKnownHostsResource(new FileSystemResource(knownHostsFile));
+      log.info("SFTP host key verification enabled using: {}", properties.getKnownHostsPath());
+    } else {
+      log.warn(
+          "Known hosts file not found at: {} - SFTP connections will fail for security",
+          properties.getKnownHostsPath());
+    }
 
     File privateKeyFile = new File(properties.getPrivateKeyPath());
     if (privateKeyFile.exists()) {
       factory.setPrivateKey(new FileSystemResource(privateKeyFile));
       log.info(
-          "SFTP session factory configured: host={}, port={}, user={}, privateKey={}",
+          "SFTP session factory configured: host={}, port={}",
           properties.getHost(),
-          properties.getPort(),
-          properties.getUsername(),
-          properties.getPrivateKeyPath());
+          properties.getPort());
     } else {
-      log.warn(
-          "SFTP private key not found at: {} - SFTP import may fail",
-          properties.getPrivateKeyPath());
+      log.warn("SFTP private key not found - SFTP import may fail");
     }
 
     factory.setTimeout(properties.getConnectionTimeout());

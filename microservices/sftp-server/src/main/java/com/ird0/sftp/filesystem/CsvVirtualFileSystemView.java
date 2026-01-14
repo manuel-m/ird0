@@ -61,7 +61,13 @@ public class CsvVirtualFileSystemView extends FileSystem {
   public Path getPath(String first, String... more) {
     // Resolve paths relative to root
     Path requested = Paths.get(first, more);
-    return rootPath.resolve(requested).normalize();
+    Path resolved = rootPath.resolve(requested).normalize();
+
+    // Security: Ensure resolved path stays within rootPath
+    if (!resolved.startsWith(rootPath)) {
+      throw new SecurityException("Path traversal attempt blocked: " + requested);
+    }
+    return resolved;
   }
 
   @Override
