@@ -10,7 +10,7 @@ This guide provides comprehensive operational procedures for administrators, Dev
 4. [Database Management](#4-database-management)
 5. [SFTP Import Operations](#5-sftp-import-operations)
 6. [SSH Key Management](#6-ssh-key-management)
-   - [HashiCorp Vault Integration](#65-hashicorp-vault-integration)
+   - [HashiCorp Vault Integration](#65-hashicorp-vault-integration) (SSH CA)
 7. [Configuration Management](#7-configuration-management)
 8. [Monitoring and Health Checks](#8-monitoring-and-health-checks)
 9. [Backup and Restore](#9-backup-and-restore)
@@ -505,83 +505,85 @@ The third field must match the username in SFTP configuration.
 
 ## 6.5. HashiCorp Vault Integration
 
-The platform optionally integrates with HashiCorp Vault for centralized secrets management. When enabled, SSH keys and credentials are loaded from Vault instead of local files.
+The platform integrates with HashiCorp Vault for centralized secrets management and SSH Certificate Authority (CA) for dynamic certificate-based SFTP authentication.
+
+> **For detailed architecture and implementation, see [topics/vault-ssh-ca.md](topics/vault-ssh-ca.md)**
 
 ### Overview
 
-**Benefits of Vault Integration:**
-- Centralized secret management across all services
-- Persistent host keys (no regeneration on container restart)
-- Audit trail for secret access
-- Simplified key rotation
-- Enhanced security (secrets not stored in files)
+**Key Capabilities:**
+- **SSH Certificate Authority**: Dynamic, short-lived certificates (15-minute TTL) for SFTP authentication
+- **Ephemeral Keys**: Per-connection RSA-4096 key pairs with forward secrecy
+- **Centralized Secrets**: Database credentials, host keys stored in Vault
+- **Audit Trail**: Complete logging of certificate issuance and authentication events
+- **Graceful Fallback**: Automatic fallback to static keys when Vault unavailable
 
 **Operation Modes:**
 - **Vault Disabled** (default): Services use file-based keys from `./keys/`
-- **Vault Enabled**: Services load secrets from Vault with file fallback
+- **Vault Enabled**: Services use Vault SSH CA for certificate-based auth
 
-### Enabling/Disabling Vault
-
-**Via Environment Variables:**
-```bash
-# Enable Vault
-VAULT_ENABLED=true docker compose up -d
-
-# Disable Vault (default)
-VAULT_ENABLED=false docker compose up -d
-```
-
-**Via .env File:**
-```bash
-# Create .env from template
-cp .env.example .env
-
-# Edit to enable/disable
-VAULT_ENABLED=true  # or false
-```
-
-### Vault Initialization
-
-After first cluster start, Vault must be initialized with secrets:
+### Quick Start
 
 ```bash
-# Start the cluster
+# Start the cluster with Vault
 docker compose up -d
 
 # Wait for Vault to be healthy
 docker compose exec vault vault status
 
-# Run initialization script
+# Initialize Vault with SSH CA and secrets
 ./scripts/vault-init.sh
 
-# Restart services to pick up Vault secrets
+# Restart services to pick up Vault configuration
 docker compose restart policyholders sftp-server
+
+# Verify certificate-based authentication
+docker compose logs policyholders | grep "\[AUDIT\]"
 ```
 
-**What vault-init.sh Does:**
-1. Enables KV v2 secrets engine
-2. Creates service access policies
-3. Stores database credentials
-4. Generates and stores SFTP host key
-5. Stores SFTP client key from `./keys/sftp_client_key`
-6. Stores authorized keys from `./keys/authorized_keys`
-7. Generates known_hosts entry
+### Enabling/Disabling Vault
 
-### Vault Secret Paths
+**Via Environment Variables:**
+```bash
+# Enable Vault with SSH CA
+VAULT_ENABLED=true VAULT_SSH_CA_ENABLED=true docker compose up -d
 
-| Path | Description | Used By |
-|------|-------------|---------|
+# Disable Vault (use static keys)
+VAULT_ENABLED=false docker compose up -d
+```
+
+**Via .env File:**
+```bash
+VAULT_ENABLED=true
+VAULT_SSH_CA_ENABLED=true
+```
+
+### Vault Secrets and SSH CA Paths
+
+| Path | Purpose | Used By |
+|------|---------|---------|
 | `secret/ird0/database/postgres` | Database credentials | Directory services |
-| `secret/ird0/sftp/host-key` | SFTP server RSA private key | SFTP server |
-| `secret/ird0/sftp/client-key` | SFTP client private key | Policyholders service |
-| `secret/ird0/sftp/authorized-keys` | Authorized public keys | SFTP server |
-| `secret/ird0/sftp/known-hosts` | Known hosts entry | Policyholders service |
+| `secret/ird0/sftp/host-key` | SFTP server host key | SFTP server |
+| `ssh-client-signer/config/ca` | CA public key | Both services |
+| `ssh-client-signer/sign/directory-service` | Certificate signing | Policyholders |
 
-### Vault UI Access
+### Monitoring Certificate Authentication
 
-Access the Vault web interface at `http://localhost:8200`:
-- Token: Use the value of `VAULT_DEV_TOKEN` (default: `dev-root-token`)
-- Navigate to Secrets > secret > ird0 to view stored secrets
+```bash
+# Watch authentication events
+docker compose logs -f sftp-server | grep "\[AUDIT\]"
+
+# Check certificate renewals
+docker compose logs policyholders | grep "CERT_RENEWED"
+
+# Check for authentication failures
+docker compose logs sftp-server | grep "AUTH_REJECTED"
+```
+
+**Expected log output:**
+```
+[AUDIT] AUTH_SUCCESS username=policyholder-importer clientAddress=/172.18.0.4:54321 certificateSerial=1234567890 validUntil=2026-01-15T10:30:00Z
+```
 
 ### Verifying Vault Status
 
@@ -589,90 +591,64 @@ Access the Vault web interface at `http://localhost:8200`:
 # Check Vault health
 curl http://localhost:8200/v1/sys/health
 
-# Check Vault status via CLI
-docker compose exec vault vault status
+# Check SSH CA role
+docker compose exec -e VAULT_TOKEN=dev-root-token vault \
+    vault read ssh-client-signer/roles/directory-service
 
-# List secrets (requires authentication)
-docker compose exec -e VAULT_TOKEN=dev-root-token vault vault kv list secret/ird0
+# Read CA public key
+docker compose exec -e VAULT_TOKEN=dev-root-token vault \
+    vault read ssh-client-signer/config/ca
 ```
 
-### Manual Secret Management
+### Vault UI Access
 
-All vault commands are run inside the Vault container using `docker compose exec`. No local vault CLI installation is required.
-
-**Read a secret:**
-```bash
-docker compose exec -e VAULT_TOKEN=dev-root-token vault vault kv get secret/ird0/sftp/host-key
-```
-
-**Update a secret:**
-```bash
-docker compose exec -T -e VAULT_TOKEN=dev-root-token vault sh -c \
-    'vault kv put secret/ird0/sftp/client-key private_key="$(cat -)"' < ./keys/new_client_key
-```
-
-**Store new authorized keys:**
-```bash
-docker compose exec -T -e VAULT_TOKEN=dev-root-token vault sh -c \
-    'vault kv put secret/ird0/sftp/authorized-keys content="$(cat -)"' < ./keys/authorized_keys
-```
+Access the Vault web interface at `http://localhost:8200`:
+- Token: `dev-root-token` (or value of `VAULT_DEV_TOKEN`)
+- Navigate to: Secrets > ssh-client-signer > config/ca (CA public key)
 
 ### Graceful Fallback Behavior
 
-When Vault is enabled but secrets are missing, services fall back to file-based keys:
+When Vault is unavailable, services automatically fall back to static keys:
 
-| Component | Vault Missing | Behavior |
-|-----------|---------------|----------|
-| SFTP Client Key | Falls back to `./keys/sftp_client_key` | Logged as warning |
-| Known Hosts | Falls back to `./keys/known_hosts` | Logged as warning |
-| Authorized Keys | Falls back to `./keys/authorized_keys` | Logged as warning |
-| Host Key | Falls back to auto-generation | Uses `./keys/hostkey.pem` |
+| Component | Fallback Source | Logged As |
+|-----------|-----------------|-----------|
+| SFTP Client Auth | `./keys/sftp_client_key` | Warning |
+| Known Hosts | `./keys/known_hosts` | Warning |
+| Authorized Keys | `./keys/authorized_keys` | Warning |
+| Host Key | `./keys/hostkey.pem` | Warning |
 
-### Troubleshooting Vault
+### Troubleshooting
 
-**Vault not starting:**
+**Certificate not obtained:**
 ```bash
-# Check logs
-docker compose logs vault
-
-# Verify port is available
-netstat -tuln | grep 8200
-```
-
-**Services not connecting to Vault:**
-```bash
-# Check Vault health from service network
+# Check Vault connectivity
 docker compose exec policyholders wget -qO- http://vault:8200/v1/sys/health
 
-# Verify VAULT_ENABLED is set
+# Check environment variables
 docker compose exec policyholders env | grep VAULT
 ```
 
-**Secrets not found:**
+**Authentication rejected:**
 ```bash
-# Check if secrets exist
-docker compose exec vault vault kv list secret/ird0
-
-# Re-run initialization
-./scripts/vault-init.sh
+# Check rejection reason
+docker compose logs sftp-server | grep "AUTH_REJECTED"
+# Common reasons: CERTIFICATE_EXPIRED, INVALID_CA_SIGNATURE, PRINCIPAL_MISMATCH
 ```
 
-**Authentication failed:**
+**Re-initialize Vault:**
 ```bash
-# Verify token matches
-echo $VAULT_DEV_TOKEN
-docker compose exec vault vault token lookup
+./scripts/vault-init.sh
+docker compose restart policyholders sftp-server
 ```
 
 ### Production Considerations
 
-For production deployments:
 - Use Vault in server mode (not dev mode)
 - Enable TLS for Vault communication
 - Use AppRole or Kubernetes authentication instead of tokens
-- Store Vault unseal keys securely
-- Enable audit logging
-- Implement secret rotation policies
+- Store Vault unseal keys securely using Shamir's Secret Sharing
+- Enable audit logging for compliance
+- Implement certificate TTL based on security requirements (5-60 minutes)
 - Use separate Vault clusters per environment
 
 ---
@@ -1252,8 +1228,8 @@ docker system prune -a                      # Clean up unused Docker resources
 
 ---
 
-**Document Version**: 1.1
-**Last Updated**: 2026-01-14
+**Document Version**: 1.2
+**Last Updated**: 2026-01-15
 **Maintainer**: DevOps Team
 
 For technical architecture details, see [ARCHITECTURE.md](ARCHITECTURE.md)

@@ -366,6 +366,107 @@ PostgreSQL (policyholders_db)
 - Import history tracking (audit table)
 - Manual import trigger REST endpoint (already implemented)
 
+## Vault SSH Certificate Authority Architecture
+
+### Overview
+
+The platform integrates HashiCorp Vault SSH Secrets Engine in CA (Certificate Authority) mode for dynamic, short-lived SSH certificates. This provides enhanced security over static key management with forward secrecy and centralized credential management.
+
+> **For detailed implementation and operations, see [topics/vault-ssh-ca.md](topics/vault-ssh-ca.md)**
+
+### Certificate-Based Authentication Flow
+
+```
+Policyholders Service                    Vault SSH CA                    SFTP Server
+        |                                     |                               |
+        |  1. Generate ephemeral RSA-4096     |                               |
+        |     key pair in memory              |                               |
+        |                                     |                               |
+        |  2. POST /sign/directory-service    |                               |
+        |     {public_key, principal, ttl}    |                               |
+        |------------------------------------>|                               |
+        |                                     |                               |
+        |  3. Return signed certificate       |                               |
+        |     {signed_key, serial}            |                               |
+        |<------------------------------------|                               |
+        |                                     |                               |
+        |  4. SSH connection with certificate |                               |
+        |------------------------------------------------------------------>|
+        |                                     |                               |
+        |                                     |  5. Verify certificate        |
+        |                                     |     - CA signature            |
+        |                                     |     - Validity period         |
+        |                                     |     - Principal match         |
+        |                                     |<------------------------------|
+        |                                     |                               |
+        |  6. Session established             |                               |
+        |<------------------------------------------------------------------|
+```
+
+### Key Components
+
+**Certificate Client (Policyholders Service):**
+- `EphemeralKeyPairGenerator`: Generates RSA-4096 key pairs in memory (forward secrecy)
+- `VaultSshCertificateSigner`: Requests certificates from Vault SSH CA
+- `SshCertificateManager`: Manages certificate lifecycle (caching, renewal)
+- `MinaSftpClient`: Apache MINA SSHD client with certificate authentication
+
+**Certificate Server (SFTP Server):**
+- `CertificateAuthenticator`: Five-step certificate verification
+- `VaultCaTrustProvider`: Loads and caches CA public key from Vault
+- `CertificateAuditLogger`: Structured audit logging for authentication events
+
+### Security Properties
+
+| Property | Implementation |
+|----------|----------------|
+| **Forward Secrecy** | Each connection uses new ephemeral RSA-4096 key pair |
+| **Short-Lived Credentials** | 15-minute certificate TTL (configurable) |
+| **Centralized Trust** | Single CA managed by Vault |
+| **Audit Trail** | All auth events logged with certificate serial |
+| **Least Privilege** | Services have minimal Vault permissions |
+| **Graceful Degradation** | Falls back to static keys when Vault unavailable |
+
+### Certificate Verification (Five Steps)
+
+1. **Certificate Type**: Must be `OpenSshCertificate` (raw keys rejected)
+2. **CA Signature**: Certificate signed by trusted Vault CA
+3. **Validity Period**: Within `validAfter` and `validBefore` timestamps
+4. **Principal Match**: Username matches certificate principal
+5. **Certificate Type**: Must be USER certificate (not HOST)
+
+### Vault Configuration
+
+**SSH Secrets Engine Role:**
+```
+Path: ssh-client-signer/roles/directory-service
+- key_type: ca
+- algorithm_signer: rsa-sha2-256
+- allowed_users: policyholder-importer
+- ttl: 15m
+- max_ttl: 1h
+```
+
+**Service Policies:**
+- Directory Service: Can sign certificates, read CA public key
+- SFTP Server: Can read CA public key only (cannot sign)
+
+### Design Rationale
+
+**Why Certificate-Based Auth over Static Keys?**
+
+**Advantages:**
+- **Limited Exposure**: Compromised certificate expires in 15 minutes
+- **Forward Secrecy**: Each session uses different keys
+- **Centralized Management**: Single CA for all certificate operations
+- **Audit Trail**: Certificate serials enable tracking
+- **No Key Distribution**: Services request certificates dynamically
+
+**Trade-offs:**
+- **Vault Dependency**: Requires running Vault infrastructure
+- **Complexity**: More components than static key auth
+- **Network Calls**: Certificate requests add latency (mitigated by caching)
+
 ## Docker Multi-Stage Build Strategy
 
 ### Build Architecture
@@ -733,6 +834,8 @@ public interface DirectoryEntryMapper {
 ## Related Documentation
 
 - [USER_GUIDE.md](USER_GUIDE.md) - Operational procedures and step-by-step guides
+- [topics/vault-ssh-ca.md](topics/vault-ssh-ca.md) - Vault SSH Certificate Authority implementation
+- [topics/ssh-keys.md](topics/ssh-keys.md) - Static SSH key management (fallback mode)
 - [topics/database.md](topics/database.md) - PostgreSQL technical deep-dive
 - [topics/docker.md](topics/docker.md) - Docker and containerization details
 - [topics/sftp-import.md](topics/sftp-import.md) - SFTP import system architecture

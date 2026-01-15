@@ -54,7 +54,17 @@ Welcome to the IRD0 project documentation. This index helps you find the right d
   - Performance optimizations
   - Troubleshooting SFTP import
 
-- [SSH Key Management](topics/ssh-keys.md)
+- [Vault SSH Certificate Authority](topics/vault-ssh-ca.md)
+  - SSH CA mode architecture
+  - Ephemeral key pair generation (forward secrecy)
+  - Certificate signing and lifecycle management
+  - Five-step certificate verification
+  - Audit logging for authentication events
+  - Vault policies and role configuration
+  - Security properties and threat mitigation
+  - Graceful fallback to static keys
+
+- [SSH Key Management](topics/ssh-keys.md) (Static Keys / Fallback Mode)
   - Key types (host key, client private key, authorized keys)
   - Host key generation (SimpleGeneratorHostKeyProvider)
   - Client key generation (ssh-keygen)
@@ -148,18 +158,20 @@ Welcome to the IRD0 project documentation. This index helps you find the right d
 
 - **New Developer**: Start with [README.md](../README.md) → [CLAUDE.md](../CLAUDE.md) → [ARCHITECTURE.md](ARCHITECTURE.md)
 - **Operations Team**: Start with [USER_GUIDE.md](USER_GUIDE.md) → [troubleshooting.md](topics/troubleshooting.md)
-- **Security Admin**: See [ssh-keys.md](topics/ssh-keys.md) → [configuration.md](topics/configuration.md)
+- **Security Admin**: See [vault-ssh-ca.md](topics/vault-ssh-ca.md) → [ssh-keys.md](topics/ssh-keys.md) → [configuration.md](topics/configuration.md)
 - **Database Admin**: See [database.md](topics/database.md) → [USER_GUIDE.md](USER_GUIDE.md)
-- **DevOps Engineer**: See [docker.md](topics/docker.md) → [monitoring.md](topics/monitoring.md)
+- **DevOps Engineer**: See [docker.md](topics/docker.md) → [monitoring.md](topics/monitoring.md) → [vault-ssh-ca.md](topics/vault-ssh-ca.md)
 
 ### By Task
 
 - **Setting up project**: [README.md](../README.md) Quick Start section
 - **Understanding SFTP import**: [topics/sftp-import.md](topics/sftp-import.md)
-- **Managing SSH keys**: [topics/ssh-keys.md](topics/ssh-keys.md)
+- **Setting up Vault SSH CA**: [topics/vault-ssh-ca.md](topics/vault-ssh-ca.md) + [USER_GUIDE.md](USER_GUIDE.md#hashicorp-vault-integration)
+- **Managing SSH keys (static)**: [topics/ssh-keys.md](topics/ssh-keys.md)
 - **Troubleshooting database issues**: [topics/database.md](topics/database.md) + [topics/troubleshooting.md](topics/troubleshooting.md)
 - **Deploying to production**: [USER_GUIDE.md](USER_GUIDE.md) → [ARCHITECTURE.md](ARCHITECTURE.md)
 - **Monitoring services**: [topics/monitoring.md](topics/monitoring.md)
+- **Monitoring certificate auth**: [topics/vault-ssh-ca.md](topics/vault-ssh-ca.md#audit-logging)
 - **Backing up data**: [USER_GUIDE.md](USER_GUIDE.md#backup-and-restore) + [topics/database.md](topics/database.md)
 - **Rotating SSH keys**: [topics/ssh-keys.md](topics/ssh-keys.md) + [USER_GUIDE.md](USER_GUIDE.md#ssh-key-management)
 - **Changing configuration**: [topics/configuration.md](topics/configuration.md)
@@ -185,4 +197,4 @@ When updating documentation:
 - Follow the existing structure and style
 - Test all internal links after changes
 
-Last Updated: 2026-01-10
+Last Updated: 2026-01-15

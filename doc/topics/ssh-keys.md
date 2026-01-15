@@ -1,6 +1,10 @@
-# SSH Key Management
+# SSH Key Management (Static Keys / Fallback Mode)
 
 ## Overview
+
+This document covers static SSH key management for SFTP authentication. When Vault is disabled or unavailable, the system uses these static keys for authentication.
+
+> **For dynamic certificate-based authentication (recommended for production), see [vault-ssh-ca.md](vault-ssh-ca.md)**
 
 The SFTP server uses SSH public key authentication for secure, password-less access. The system manages three types of keys: host keys (server identity), client private keys (authentication), and authorized public keys (access control).
 
@@ -10,6 +14,11 @@ The SFTP server uses SSH public key authentication for secure, password-less acc
 - Persistent host key across restarts
 - Multiple users with separate keys
 - Three-field authorized_keys format
+
+**When to Use Static Keys:**
+- Development environments without Vault
+- Fallback when Vault is unavailable
+- Legacy deployments not using Vault SSH CA
 
 ## Key Types and Purposes
 
@@ -578,6 +587,7 @@ docker compose logs sftp-server | grep "No authorized key found"
 
 ## Related Topics
 
+- [vault-ssh-ca.md](vault-ssh-ca.md) - Dynamic certificate-based authentication (recommended)
 - [USER_GUIDE.md#ssh-key-management](../USER_GUIDE.md#ssh-key-management) - Operational procedures
 - [sftp-import.md](sftp-import.md) - SFTP import system
 - [configuration.md](configuration.md) - SFTP server configuration

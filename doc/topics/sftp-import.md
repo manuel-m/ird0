@@ -128,10 +128,10 @@ public SessionFactory<LsEntry> sftpSessionFactory() {
 ```
 
 **Authentication:**
-- SSH private key authentication (no password)
-- Key location: `./keys/sftp_client_key`
+- **Vault SSH CA mode** (recommended): Dynamic certificates from Vault - see [vault-ssh-ca.md](vault-ssh-ca.md)
+- **Static key mode** (fallback): SSH private key from `./keys/sftp_client_key` - see [ssh-keys.md](ssh-keys.md)
 - `allowUnknownKeys`: Accepts any host key (development setting)
-- Production: Should validate host keys
+- Production: Use Vault SSH CA with certificate-based authentication
 
 ## File-Level Change Detection
 
@@ -550,7 +550,8 @@ curl -X POST http://localhost:8081/api/policyholders/import \
 ## Related Topics
 
 - [USER_GUIDE.md#sftp-import-operations](../USER_GUIDE.md#sftp-import-operations) - Operational procedures
-- [ssh-keys.md](ssh-keys.md) - SSH key authentication
+- [vault-ssh-ca.md](vault-ssh-ca.md) - Vault SSH CA certificate authentication (recommended)
+- [ssh-keys.md](ssh-keys.md) - Static SSH key authentication (fallback)
 - [configuration.md](configuration.md) - Configuration management
 - [database.md](database.md) - Database operations
 - [reviews/sftp-import-review-2026-01-08.md](../reviews/sftp-import-review-2026-01-08.md) - Technical review
