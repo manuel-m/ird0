@@ -14,7 +14,7 @@ This is an insurance platform microservices architecture built with Spring Boot 
 ### Microservices
 
 #### Directory Service (Multi-Instance)
-- **Ports**: 8081 (policyholders), 8082 (experts), 8083 (providers)
+- **Ports**: 8081-8084 (host access), 8080 (internal in Docker)
 - **Protocol**: REST API (HTTP)
 - **Database**: PostgreSQL (separate database per instance in single PostgreSQL container)
 - **Purpose**: CRUD operations for directory entries
@@ -23,16 +23,17 @@ This is an insurance platform microservices architecture built with Spring Boot 
 
 The project uses a unique architecture where a single microservice (`microservices/directory/`) is deployed three times with different configurations:
 
-- **Policyholders Service**: Port 8081, API path `/api/policyholders`, PostgreSQL database `policyholders_db`
-- **Experts Service**: Port 8082, API path `/api/experts`, PostgreSQL database `experts_db`
-- **Providers Service**: Port 8083, API path `/api/providers`, PostgreSQL database `providers_db`
+- **Policyholders Service**: Port 8081 (host), 8080 (internal), API path `/api/policyholders`, PostgreSQL database `policyholders_db`
+- **Experts Service**: Port 8082 (host), 8080 (internal), API path `/api/experts`, PostgreSQL database `experts_db`
+- **Providers Service**: Port 8083 (host), 8080 (internal), API path `/api/providers`, PostgreSQL database `providers_db`
+- **Insurers Service**: Port 8084 (host), 8080 (internal), API path `/api/insurers`, PostgreSQL database `insurers_db`
 
 Each instance is configured via YAML files in `microservices/directory/configs/`. Common configuration (`application.yml`) is shared, while instance-specific files (`policyholders.yml`, `experts.yml`, `providers.yml`) provide overrides for port, database path, and API base path.
 
 See [Directory Service Documentation](microservices/directory/CLAUDE.md) for detailed configuration and usage.
 
 #### SFTP Server
-- **Port**: 2222 (SFTP), 9090 (management/actuator)
+- **Ports**: 2222 (SFTP), 9090 (actuator host), 8080 (actuator internal)
 - **Protocol**: SFTP (SSH File Transfer Protocol)
 - **Authentication**: SSH public key only
 - **Access**: Read-only file system
@@ -134,6 +135,63 @@ Database data persists in the `postgres-data` Docker volume, surviving container
 
 **Health Checks:**
 Directory services wait for PostgreSQL health check before starting, ensuring database availability.
+
+## Configuration Management
+
+The project uses a layered configuration approach that supports both local development and Docker deployment:
+
+1. **Java defaults** - Suitable for local development (localhost:808X)
+2. **YAML files** - Support environment variable overrides with `${VAR:default}` syntax
+3. **.env file** - Single source of truth for Docker deployments (DRY: hostnames and port stored separately)
+4. **docker-compose.yml** - Constructs URLs by combining `${SERVICE_HOST}:${SERVICE_INTERNAL_PORT}`
+
+**DRY Principle:**
+Service URLs are not stored as complete URLs in .env. Instead:
+- Service hostnames are defined once (e.g., `POLICYHOLDERS_SERVICE_HOST=policyholders`)
+- Internal port is defined once (`SERVICE_INTERNAL_PORT=8080`)
+- docker-compose.yml constructs full URLs: `http://${POLICYHOLDERS_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}`
+- This ensures the port is never duplicated - change it once and it applies everywhere
+
+### Port Configuration Strategy
+
+The architecture uses different port schemes for local development vs Docker deployment:
+
+**Docker deployment (inside containers):**
+- All Spring Boot services run on port **8080** internally
+- External access via host port mapping (8081, 8082, 8083, etc.)
+- Service-to-service communication uses Docker DNS names: `http://servicename:8080`
+
+**Local development (without Docker):**
+- Services run on different ports (8081, 8082, 8083, etc.) to avoid conflicts
+- No Docker required
+- Service URLs use localhost: `http://localhost:8081`
+
+### Environment Variables
+
+All configuration is externalized via environment variables. See `.env.example` for complete reference.
+
+**Key variables:**
+- `SERVICE_INTERNAL_PORT` - Internal port for all Spring Boot services (8080 in Docker)
+- `{SERVICE}_HOST_PORT` - External port mapping for each service
+- `{SERVICE}_SERVICE_HOST` - Service hostnames for Docker DNS (e.g., `POLICYHOLDERS_SERVICE_HOST=policyholders`)
+- URLs are constructed as: `http://${SERVICE_HOST}:${SERVICE_INTERNAL_PORT}` (DRY principle)
+- `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD` - Database configuration
+- `VAULT_ENABLED`, `VAULT_ADDR`, `VAULT_DEV_TOKEN` - Vault configuration
+
+### Port Reference
+
+| Service | Local Dev Port | Docker Internal | Docker Host | Inter-Service URL |
+|---------|---------------|-----------------|-------------|-------------------|
+| Policyholders | 8081 | 8080 | 8081 | http://policyholders:8080 |
+| Experts | 8082 | 8080 | 8082 | http://experts:8080 |
+| Providers | 8083 | 8080 | 8083 | http://providers:8080 |
+| Insurers | 8084 | 8080 | 8084 | http://insurers:8080 |
+| Incident | 8085 | 8080 | 8085 | http://incident-service:8080 |
+| Notification | 8086 | 8080 | 8086 | http://notification-service:8080 |
+| SFTP | 2222 | 2222 | 2222 | http://sftp-server:2222 |
+| SFTP Actuator | 9090 | 8080 | 9090 | http://sftp-server:8080 |
+| PostgreSQL | 5432 | 5432 | 5432 | postgres:5432 |
+| Vault | 8200 | 8200 | 8200 | http://vault:8200 |
 
 ## Module-Specific Documentation
 

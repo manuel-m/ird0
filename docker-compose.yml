@@ -1,7 +1,6 @@
 services:
   vault:
     image: hashicorp/vault:1.15
-    container_name: vault
     restart: unless-stopped
     ports:
       - "8200:8200"
@@ -15,7 +14,7 @@ services:
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_TOKEN:-dev-root-token}
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
-      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_ADDR: http://vault:8200
     cap_add:
       - IPC_LOCK
     volumes:
@@ -29,7 +28,7 @@ services:
     networks:
       - insurance-network
 
-  policyholders:
+  policyholders-svc:
     build:
       context: .
       dockerfile: microservices/directory/Dockerfile
@@ -38,7 +37,7 @@ services:
     image: directory-policyholders
     restart: unless-stopped
     ports:
-      - "8081:8081"
+      - "${POLICYHOLDERS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"
     deploy:
       resources:
         limits:
@@ -54,32 +53,35 @@ services:
       vault:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVICE_INTERNAL_PORT}/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
+      - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - SFTP_HOST=sftp-server
-      - SFTP_PORT=2222
-      - SFTP_USERNAME=policyholder-importer
-      - DIRECTORY_SFTP_IMPORT_LOCAL_DIRECTORY=/app/temp/sftp-downloads
-      - DIRECTORY_SFTP_IMPORT_METADATA_DIRECTORY=/app/data/sftp-metadata
-      - DIRECTORY_SFTP_IMPORT_ERROR_HANDLING_ERROR_DIRECTORY=/app/data/sftp-errors
-      - DIRECTORY_SFTP_IMPORT_ERROR_HANDLING_DEAD_LETTER_DIRECTORY=/app/data/sftp-failed
-      # Vault configuration for SSH certificate signing
-      - VAULT_ENABLED=true
+      - SFTP_HOST=${SFTP_HOST}
+      - SFTP_PORT=${SFTP_PORT}
+      - SFTP_USERNAME=${SFTP_USERNAME}
+      - DIRECTORY_SFTP_IMPORT_LOCAL_DIRECTORY=${DIRECTORY_SFTP_IMPORT_LOCAL_DIRECTORY}
+      - DIRECTORY_SFTP_IMPORT_METADATA_DIRECTORY=${DIRECTORY_SFTP_IMPORT_METADATA_DIRECTORY}
+      - DIRECTORY_SFTP_IMPORT_ERROR_DIRECTORY=${DIRECTORY_SFTP_IMPORT_ERROR_DIRECTORY}
+      - DIRECTORY_SFTP_IMPORT_DEAD_LETTER_DIRECTORY=${DIRECTORY_SFTP_IMPORT_DEAD_LETTER_DIRECTORY}
+      - VAULT_ENABLED=${VAULT_ENABLED}
       - VAULT_SSH_CA_ENABLED=true
-      - VAULT_ADDR=http://vault:8200
-      - VAULT_TOKEN=${VAULT_DEV_TOKEN:-dev-root-token}
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_DEV_TOKEN}
     networks:
-      - insurance-network
+      insurance-network:
+          aliases:
+            - ${POLICYHOLDERS_SERVICE_HOST}
 
-  experts:
+
+  experts-svc:
     build:
       context: .
       dockerfile: microservices/directory/Dockerfile
@@ -88,7 +90,7 @@ services:
     image: directory-experts
     restart: unless-stopped
     ports:
-      - "8082:8082"
+      - "${EXPERTS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"
     deploy:
       resources:
         limits:
@@ -100,22 +102,25 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVICE_INTERNAL_PORT}/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
+      - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - VAULT_ENABLED=false
-      - VAULT_TOKEN=${VAULT_DEV_TOKEN:-dev-root-token}
+      - VAULT_TOKEN=${VAULT_DEV_TOKEN}
     networks:
-      - insurance-network
+      insurance-network:
+        aliases:
+          - ${EXPERTS_SERVICE_HOST}
 
-  providers:
+  providers-svc:
     build:
       context: .
       dockerfile: microservices/directory/Dockerfile
@@ -124,7 +129,7 @@ services:
     image: directory-providers
     restart: unless-stopped
     ports:
-      - "8083:8083"
+      - "${PROVIDERS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"
     deploy:
       resources:
         limits:
@@ -136,22 +141,25 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVICE_INTERNAL_PORT}/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
+      - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - VAULT_ENABLED=false
-      - VAULT_TOKEN=${VAULT_DEV_TOKEN:-dev-root-token}
+      - VAULT_TOKEN=${VAULT_DEV_TOKEN}
     networks:
-      - insurance-network
+      insurance-network:
+        aliases:
+          - ${PROVIDERS_SERVICE_HOST}
 
-  insurers:
+  insurers-svc:
     build:
       context: .
       dockerfile: microservices/directory/Dockerfile
@@ -160,7 +168,7 @@ services:
     image: directory-insurers
     restart: unless-stopped
     ports:
-      - "8084:8084"
+      - "${INSURERS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"
     deploy:
       resources:
         limits:
@@ -172,20 +180,23 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8084/actuator/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVICE_INTERNAL_PORT}/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
+      - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - VAULT_ENABLED=false
-      - VAULT_TOKEN=${VAULT_DEV_TOKEN:-dev-root-token}
+      - VAULT_TOKEN=${VAULT_DEV_TOKEN}
     networks:
-      - insurance-network
+      insurance-network:
+        aliases:
+          - ${INSURERS_SERVICE_HOST}
 
   postgres:
     image: postgres:16-alpine
@@ -214,7 +225,7 @@ services:
     networks:
       - insurance-network
 
-  incident-service:
+  incident-svc:
     build:
       context: .
       dockerfile: microservices/incident/Dockerfile
@@ -223,7 +234,7 @@ services:
     image: incident-service
     restart: unless-stopped
     ports:
-      - "8085:8085"
+      - "${INCIDENT_HOST_PORT}:${SERVICE_INTERNAL_PORT}"
     deploy:
       resources:
         limits:
@@ -235,26 +246,29 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVICE_INTERNAL_PORT}/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
+      - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POLICYHOLDERS_SERVICE_URL=http://policyholders:8081
-      - INSURERS_SERVICE_URL=http://insurers:8084
-      - EXPERTS_SERVICE_URL=http://experts:8082
-      - PROVIDERS_SERVICE_URL=http://providers:8083
-      - NOTIFICATION_SERVICE_URL=http://notification-service:8086
+      - POLICYHOLDERS_SERVICE_URL=http://${POLICYHOLDERS_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}
+      - INSURERS_SERVICE_URL=http://${INSURERS_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}
+      - EXPERTS_SERVICE_URL=http://${EXPERTS_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}
+      - PROVIDERS_SERVICE_URL=http://${PROVIDERS_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}
+      - NOTIFICATION_SERVICE_URL=http://${NOTIFICATION_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}
       - NOTIFICATION_ENABLED=true
     networks:
-      - insurance-network
+      insurance-network:
+        aliases:
+          - ${INCIDENT_SERVICE_HOST}
 
-  notification-service:
+  notification-svc:
     build:
       context: .
       dockerfile: microservices/notification/Dockerfile
@@ -263,7 +277,7 @@ services:
     image: notification-service
     restart: unless-stopped
     ports:
-      - "8086:8086"
+      - "${NOTIFICATION_HOST_PORT}:${SERVICE_INTERNAL_PORT}"
     deploy:
       resources:
         limits:
@@ -275,19 +289,22 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8086/actuator/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVICE_INTERNAL_PORT}/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
+      - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - INSURERS_SERVICE_URL=http://insurers:8084
+      - INSURERS_SERVICE_URL=http://${INSURERS_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}
     networks:
-      - insurance-network
+      insurance-network:
+        aliases:
+          - ${NOTIFICATION_SERVICE_HOST}
 
   sftp-server:
     build:
@@ -305,30 +322,33 @@ services:
         reservations:
           memory: 128M
     ports:
-      - "2222:2222"  # SFTP port
-      - "9090:9090"  # Management/actuator port
+      - "${SFTP_HOST_PORT}:${SFTP_PORT}"  # SFTP port
+      - "${SFTP_ACTUATOR_HOST_PORT}:${SERVICE_INTERNAL_PORT}"  # Management/actuator port
     depends_on:
       vault:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "2222"]
+      test: ["CMD", "nc", "-z", "localhost", "${SFTP_PORT}"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
     environment:
-      - SFTP_DATA_DIR=/app/data
-      - SFTP_HOST_KEY_PATH=/app/keys/hostkey.pem
-      # Vault configuration for SSH certificate authentication
-      - VAULT_ENABLED=true
+      - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - SFTP_PORT=${SFTP_PORT}
+      - SFTP_DATA_DIR=${SFTP_DATA_DIR}
+      - SFTP_HOST_KEY_PATH=${SFTP_HOST_KEY_PATH}
+      - VAULT_ENABLED=${VAULT_ENABLED}
       - VAULT_SSH_CA_ENABLED=true
-      - VAULT_ADDR=http://vault:8200
-      - VAULT_TOKEN=${VAULT_DEV_TOKEN:-dev-root-token}
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_DEV_TOKEN}
     volumes:
       - ./data:/app/data:ro  # Mount data directory as read-only
       - ./keys:/app/keys      # Mount keys directory for host key persistence
     networks:
-      - insurance-network
+      insurance-network:
+        aliases:
+          - ${SFTP_SERVICE_HOST}
 
 volumes:
   postgres-data:

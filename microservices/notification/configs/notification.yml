@@ -1,9 +1,11 @@
 server:
-  port: 8086
+  port: ${SERVER_PORT:8086}
 
 notification:
   api:
     base-path: /api/v1/notifications
+  directory:
+    insurers-url: ${INSURERS_SERVICE_URL:http://localhost:8084}
   webhook:
     connect-timeout: 5000
     read-timeout: 10000

@@ -17,7 +17,7 @@ build:
 
 start-core:
 	docker compose -p $(PROJECT_NAME) up -d $(CORE_SERVICES)
-	sleep 10
+	sleep 4
 
 init:
 	bash scripts/vault-init.sh

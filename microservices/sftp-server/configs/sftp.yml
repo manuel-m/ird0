@@ -1,7 +1,7 @@
 # SFTP-specific configuration
 
 server:
-  port: 9090  # Management HTTP port
+  port: ${SERVER_PORT:9090}  # Management HTTP port
 
 
 sftp:

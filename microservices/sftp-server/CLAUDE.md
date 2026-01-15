@@ -10,7 +10,7 @@ The SFTP server is a Spring Boot application that exposes CSV files via SFTP pro
 - SFTP protocol on port 2222
 - SSH public key authentication (RSA keys)
 - Read-only file system
-- Spring Boot Actuator for health monitoring (port 9090)
+- Spring Boot Actuator for health monitoring (port 9090 host, 8080 internal in Docker)
 - Apache MINA SSHD 2.12.0 for embedded SFTP server
 - No web server (non-reactive Spring Boot application)
 
@@ -219,6 +219,8 @@ mvn spring-boot:run \
 - CSV files from `data/` directory are exposed via SFTP
 - Actuator endpoints available on port 9090
 - Application remains running (keep-alive)
+
+**Note:** The Actuator port starts on 9090 by default for local development. In Docker, the `SERVER_PORT` environment variable overrides this to 8080 (mapped to host port 9090), ensuring uniform internal ports across all Spring Boot services.
 
 **To stop the server:**
 Press `Ctrl+C`

@@ -10,12 +10,14 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-VAULT_ADDR="${VAULT_ADDR:-http://localhost:8200}"
+# [!] launched outside docker
+VAULT_ADDR_LOCAL="http://localhost:8200"
+
 VAULT_TOKEN="${VAULT_DEV_TOKEN:-dev-root-token}"
 PROJECT_NAME="${PROJECT_NAME:-insure}"
 
 echo "Vault initialization script"
-echo "VAULT_ADDR: $VAULT_ADDR"
+echo "VAULT_ADDR_LOCAL: $VAULT_ADDR_LOCAL"
 echo "PROJECT_DIR: $PROJECT_DIR"
 echo "PROJECT_NAME: $PROJECT_NAME"
 
@@ -26,7 +28,7 @@ vault_cmd() {
 . .env
 # Wait for Vault to be ready
 echo "Waiting for Vault to be ready..."
-until curl -s "$VAULT_ADDR/v1/sys/health" > /dev/null 2>&1; do
+until curl -s "$VAULT_ADDR_LOCAL/v1/sys/health" > /dev/null 2>&1; do
     echo "Vault is not ready yet..."
     sleep 2
 done

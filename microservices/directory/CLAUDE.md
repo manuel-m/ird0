@@ -354,6 +354,13 @@ cd microservices/directory
 mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/providers.yml"
 ```
 
+**Note:** The service starts on its configured port by default (8081 for policyholders, 8082 for experts, etc.). In Docker, the `SERVER_PORT` environment variable overrides this to 8080 for uniformity.
+
+**Override port for local testing:**
+```bash
+SERVER_PORT=9000 mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/policyholders.yml"
+```
+
 **What Happens:**
 - Service starts on the configured port
 - Connects to PostgreSQL database (requires PostgreSQL to be running)

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 public class NotificationProperties {
 
   private Api api = new Api();
+  private Directory directory = new Directory();
   private Webhook webhook = new Webhook();
   private Retry retry = new Retry();
   private Scheduler scheduler = new Scheduler();
@@ -17,6 +18,11 @@ public class NotificationProperties {
   @Data
   public static class Api {
     private String basePath = "/api/v1/notifications";
+  }
+
+  @Data
+  public static class Directory {
+    private String insurersUrl = "http://localhost:8084";
   }
 
   @Data

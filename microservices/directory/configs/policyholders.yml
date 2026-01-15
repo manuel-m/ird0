@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}
 
 directory:
   api:
@@ -20,12 +20,12 @@ directory:
       fixed-delay: 120000
       initial-delay: 5000
       batch-size: 500
-    local-directory: ../../temp/sftp-downloads
-    metadata-directory: ../../data/sftp-metadata
+    local-directory: ${DIRECTORY_SFTP_IMPORT_LOCAL_DIRECTORY:../../temp/sftp-downloads}
+    metadata-directory: ${DIRECTORY_SFTP_IMPORT_METADATA_DIRECTORY:../../data/sftp-metadata}
     error-handling:
       enabled: true
-      error-directory: ../../data/sftp-errors
-      dead-letter-directory: ../../data/sftp-failed
+      error-directory: ${DIRECTORY_SFTP_IMPORT_ERROR_DIRECTORY:../../data/sftp-errors}
+      dead-letter-directory: ${DIRECTORY_SFTP_IMPORT_DEAD_LETTER_DIRECTORY:../../data/sftp-failed}
     retry:
       enabled: true
       max-attempts: 3
