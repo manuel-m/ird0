@@ -1,0 +1,174 @@
+# Directory Services
+# Multi-instance directory microservices for managing different entity types
+# Each service uses the same codebase with different configuration (APP_YML build arg)
+
+services:
+  policyholders-svc:
+    build:
+      context: ..
+      dockerfile: microservices/directory/Dockerfile
+      args:
+        APP_YML: policyholders.yml
+    image: directory-policyholders
+    restart: unless-stopped
+    ports:
+      - "${POLICYHOLDERS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
+    depends_on:
+      postgres:
+        condition: service_healthy
+      sftp-server:
+        condition: service_started
+      vault:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVICE_INTERNAL_PORT}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    environment:
+      - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - SFTP_HOST=${SFTP_HOST}
+      - SFTP_PORT=${SFTP_PORT}
+      - SFTP_USERNAME=${SFTP_USERNAME}
+      - DIRECTORY_SFTP_IMPORT_LOCAL_DIRECTORY=${DIRECTORY_SFTP_IMPORT_LOCAL_DIRECTORY}
+      - DIRECTORY_SFTP_IMPORT_METADATA_DIRECTORY=${DIRECTORY_SFTP_IMPORT_METADATA_DIRECTORY}
+      - DIRECTORY_SFTP_IMPORT_ERROR_DIRECTORY=${DIRECTORY_SFTP_IMPORT_ERROR_DIRECTORY}
+      - DIRECTORY_SFTP_IMPORT_DEAD_LETTER_DIRECTORY=${DIRECTORY_SFTP_IMPORT_DEAD_LETTER_DIRECTORY}
+      - VAULT_ENABLED=${VAULT_ENABLED}
+      - VAULT_SSH_CA_ENABLED=true
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_DEV_TOKEN}
+    networks:
+      insurance-network:
+          aliases:
+            - ${POLICYHOLDERS_SERVICE_HOST}
+
+
+  experts-svc:
+    build:
+      context: ..
+      dockerfile: microservices/directory/Dockerfile
+      args:
+        APP_YML: experts.yml
+    image: directory-experts
+    restart: unless-stopped
+    ports:
+      - "${EXPERTS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVICE_INTERNAL_PORT}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    environment:
+      - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - VAULT_ENABLED=false
+      - VAULT_TOKEN=${VAULT_DEV_TOKEN}
+    networks:
+      insurance-network:
+        aliases:
+          - ${EXPERTS_SERVICE_HOST}
+
+  providers-svc:
+    build:
+      context: ..
+      dockerfile: microservices/directory/Dockerfile
+      args:
+        APP_YML: providers.yml
+    image: directory-providers
+    restart: unless-stopped
+    ports:
+      - "${PROVIDERS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVICE_INTERNAL_PORT}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    environment:
+      - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - VAULT_ENABLED=false
+      - VAULT_TOKEN=${VAULT_DEV_TOKEN}
+    networks:
+      insurance-network:
+        aliases:
+          - ${PROVIDERS_SERVICE_HOST}
+
+  insurers-svc:
+    build:
+      context: ..
+      dockerfile: microservices/directory/Dockerfile
+      args:
+        APP_YML: insurers.yml
+    image: directory-insurers
+    restart: unless-stopped
+    ports:
+      - "${INSURERS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVICE_INTERNAL_PORT}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    environment:
+      - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - VAULT_ENABLED=false
+      - VAULT_TOKEN=${VAULT_DEV_TOKEN}
+    networks:
+      insurance-network:
+        aliases:
+          - ${INSURERS_SERVICE_HOST}

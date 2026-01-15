@@ -297,38 +297,110 @@ Enables multi-instance deployment from a single Dockerfile:
 - Same Docker image build process
 - Different runtime configurations
 
-### Docker Compose Configuration
+### Docker Compose File Organization
 
-**Example: Policyholders Service**
+The project uses a modular Docker Compose configuration split across multiple files for improved maintainability and selective service startup:
+
+**File Structure:**
+```
+docker-compose.yml                      # Main orchestration file (includes all groups)
+docker-compose.infrastructure.yml       # Core infrastructure (postgres, vault, networks, volumes)
+docker-compose.directory.yml            # Directory microservices (4 instances)
+docker-compose.apps.yml                 # Application services (incident, notification, sftp)
+```
+
+**Main Orchestration File (docker-compose.yml):**
+```yaml
+# Main Docker Compose orchestration file
+# This file includes all service groups using the include directive
+
+include:
+  - docker-compose.infrastructure.yml
+  - docker-compose.directory.yml
+  - docker-compose.apps.yml
+```
+
+**Benefits of Modular Structure:**
+- Easier navigation and maintenance (each file ~100-150 lines)
+- Related services grouped together
+- Selective service startup (infrastructure only, directory only, etc.)
+- Users can still run `docker compose up` without additional flags
+- Clear separation of concerns (infrastructure vs application services)
+
+**Usage Examples:**
+```bash
+# Start all services (uses main docker-compose.yml with includes)
+docker compose up -d
+
+# Start infrastructure only (postgres + vault)
+docker compose -f docker-compose.infrastructure.yml up -d
+
+# Start infrastructure + directory services
+docker compose -f docker-compose.infrastructure.yml -f docker-compose.directory.yml up -d
+
+# View merged configuration
+docker compose config
+```
+
+**Include Directive:**
+The `include` directive (available since Docker Compose v2.20) allows the main file to reference other compose files. Docker automatically merges them, resolving cross-file dependencies and network references.
+
+### Docker Compose Service Configuration
+
+**Example: Policyholders Service (from docker-compose.directory.yml)**
 
 ```yaml
-policyholders:
+policyholders-svc:
   build:
     context: .
     dockerfile: microservices/directory/Dockerfile
     args:
       APP_YML: policyholders.yml    # Inject policyholders config
+  image: directory-policyholders
   ports:
-    - "8081:8081"
+    - "${POLICYHOLDERS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"  # 8081:8080
   environment:
-    POSTGRES_HOST: postgres
+    - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+    - POSTGRES_HOST=${POSTGRES_HOST}
+    - POSTGRES_USER=${POSTGRES_USER}
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
   depends_on:
     postgres:
       condition: service_healthy
+  networks:
+    insurance-network:
+      aliases:
+        - ${POLICYHOLDERS_SERVICE_HOST}  # Creates 'policyholders' DNS alias
 ```
 
-**Example: Experts Service**
+**Example: Infrastructure Services (from docker-compose.infrastructure.yml)**
 
 ```yaml
-experts:
-  build:
-    context: .
-    dockerfile: microservices/directory/Dockerfile
-    args:
-      APP_YML: experts.yml          # Inject experts config
-  ports:
-    - "8082:8082"
+postgres:
+  image: postgres:16-alpine
+  environment:
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    POSTGRES_MULTIPLE_DATABASES: policyholders_db,experts_db,providers_db,insurers_db
+  volumes:
+    - postgres-data:/var/lib/postgresql/data
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U directory_user"]
+    interval: 10s
+  networks:
+    - insurance-network
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  insurance-network:
+    driver: bridge
 ```
+
+**Cross-File Dependencies:**
+Services can depend on resources defined in other compose files. Docker Compose automatically resolves these when using the main docker-compose.yml or when combining multiple files with `-f` flags.
 
 ### Build-Time vs Runtime Configuration
 

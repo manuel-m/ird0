@@ -35,9 +35,10 @@ Welcome to the IRD0 project documentation. This index helps you find the right d
 - [Docker & Containerization](topics/docker.md)
   - Multi-stage build strategy
   - Dependency layer caching
+  - Modular Docker Compose file organization (infrastructure, directory, apps)
+  - Include directive and service group startup
   - Volume management (named volumes, bind mounts)
-  - Network configuration
-  - Docker Compose orchestration
+  - Network configuration and cross-file dependencies
   - Service dependencies and health checks
   - Optimization techniques
 

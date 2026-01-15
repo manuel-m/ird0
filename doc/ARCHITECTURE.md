@@ -50,23 +50,34 @@ Each instance shares the same codebase but uses different YAML configuration fil
 
 **Docker Configuration Selection:**
 
-The Docker Compose file uses the `APP_YML` build argument to select which configuration file to inject:
+The project uses modular Docker Compose files (infrastructure, directory, apps) that are combined via the main docker-compose.yml using the `include` directive. Directory services use the `APP_YML` build argument to select which configuration file to inject:
 
 ```yaml
-policyholders:
+# From docker-compose.directory.yml
+policyholders-svc:
   build:
     args:
       APP_YML: policyholders.yml
   ports:
-    - "8081:8081"
+    - "${POLICYHOLDERS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"  # 8081:8080
+  networks:
+    insurance-network:
+      aliases:
+        - ${POLICYHOLDERS_SERVICE_HOST}  # Creates 'policyholders' DNS alias
 
-experts:
+experts-svc:
   build:
     args:
       APP_YML: experts.yml
   ports:
-    - "8082:8082"
+    - "${EXPERTS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"  # 8082:8080
 ```
+
+**Compose File Organization:**
+- `docker-compose.infrastructure.yml` - Core services (postgres, vault, networks, volumes)
+- `docker-compose.directory.yml` - Directory microservices (4 instances)
+- `docker-compose.apps.yml` - Application services (incident, notification, sftp)
+- `docker-compose.yml` - Main orchestrator using `include` directive
 
 The Dockerfile copies the specified configuration file:
 
@@ -158,9 +169,9 @@ EOSQL
 done
 ```
 
-Triggered by environment variable in docker-compose.yml:
+Triggered by environment variable in docker-compose.infrastructure.yml:
 ```yaml
-POSTGRES_MULTIPLE_DATABASES: policyholders_db,experts_db,providers_db
+POSTGRES_MULTIPLE_DATABASES: policyholders_db,experts_db,providers_db,insurers_db,incidents_db,notifications_db
 ```
 
 ### Schema Management
@@ -532,10 +543,10 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 **APP_YML Build Argument:**
 
-Docker Compose specifies which configuration file to use:
+Docker Compose (in docker-compose.directory.yml) specifies which configuration file to use:
 
 ```yaml
-policyholders:
+policyholders-svc:
   build:
     dockerfile: microservices/directory/Dockerfile
     args:

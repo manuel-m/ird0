@@ -117,18 +117,42 @@ If `scripts/verify-services.sh` exists:
 
 ### Starting Services
 
-```bash
-# Start all services
-docker compose up -d
+The project uses a modular Docker Compose configuration split across multiple files for easier maintenance:
+- `docker-compose.infrastructure.yml` - Core infrastructure (postgres, vault)
+- `docker-compose.directory.yml` - Directory microservices (policyholders, experts, providers, insurers)
+- `docker-compose.apps.yml` - Application services (incident, notification, sftp)
+- `docker-compose.yml` - Main file that includes all service groups
 
-# Start specific service
-docker compose up -d policyholders
+**Start all services:**
+```bash
+# Start all services (uses main docker-compose.yml with includes)
+docker compose up -d
 
 # Start with rebuild
 docker compose up --build -d
+```
+
+**Start specific service groups:**
+```bash
+# Infrastructure only (postgres + vault)
+docker compose -f docker-compose.infrastructure.yml up -d
+
+# Infrastructure + directory services
+docker compose -f docker-compose.infrastructure.yml -f docker-compose.directory.yml up -d
+
+# Infrastructure + directory + apps (same as docker compose up -d)
+docker compose up -d
+```
+
+**Start specific service:**
+```bash
+# Start individual service
+docker compose up -d policyholders-svc
+docker compose up -d incident-svc
+docker compose up -d sftp-server
 
 # Watch logs
-docker compose logs -f policyholders
+docker compose logs -f policyholders-svc
 ```
 
 ### Stopping Services
@@ -138,19 +162,35 @@ docker compose logs -f policyholders
 docker compose down
 
 # Stop specific service
-docker compose stop policyholders
+docker compose stop policyholders-svc
 
 # Restart service
-docker compose restart policyholders
+docker compose restart policyholders-svc
+```
+
+### Viewing Configuration
+
+```bash
+# View the merged configuration from all files
+docker compose config
+
+# List all services
+docker compose config --services
+
+# View specific service configuration
+docker compose config policyholders-svc
 ```
 
 ### Service Dependencies
 
+Docker Compose automatically resolves dependencies across the split files when using the main docker-compose.yml or when combining files with multiple `-f` flags.
+
 **Startup Order:**
-1. PostgreSQL container starts and runs health check
+1. PostgreSQL and Vault containers start (infrastructure layer)
 2. Directory services wait for PostgreSQL to be healthy
-3. Policyholders service additionally waits for SFTP server
-4. SFTP server can start independently
+3. Policyholders service additionally waits for SFTP server and Vault
+4. SFTP server waits for Vault to be healthy
+5. Application services (incident, notification) wait for their dependencies
 
 **Health Checks:**
 - PostgreSQL: `pg_isready -U directory_user` every 10s, 5 retries, 5s timeout

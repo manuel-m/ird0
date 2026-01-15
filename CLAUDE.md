@@ -66,7 +66,10 @@ See [Data Generator Documentation](utilities/directory-data-generator/CLAUDE.md)
 ```
 ird0/
 ├── pom.xml                                   # Root POM (parent)
-├── docker-compose.yml                         # Multi-service deployment
+├── docker-compose.yml                         # Main orchestration file (includes all service groups)
+├── docker-compose.infrastructure.yml          # Infrastructure services (postgres, vault)
+├── docker-compose.directory.yml               # Directory microservices (4 instances)
+├── docker-compose.apps.yml                    # Application services (incident, notification, sftp)
 ├── microservices/
 │   ├── directory/
 │   │   ├── pom.xml                           # Directory microservice POM
@@ -143,7 +146,9 @@ The project uses a layered configuration approach that supports both local devel
 1. **Java defaults** - Suitable for local development (localhost:808X)
 2. **YAML files** - Support environment variable overrides with `${VAR:default}` syntax
 3. **.env file** - Single source of truth for Docker deployments (DRY: hostnames and port stored separately)
-4. **docker-compose.yml** - Constructs URLs by combining `${SERVICE_HOST}:${SERVICE_INTERNAL_PORT}`
+4. **docker-compose files** - Constructs URLs by combining `${SERVICE_HOST}:${SERVICE_INTERNAL_PORT}`
+   - Split into modular files for maintainability (infrastructure, directory, apps)
+   - Main docker-compose.yml includes all service groups using the `include` directive
 
 **DRY Principle:**
 Service URLs are not stored as complete URLs in .env. Instead:
@@ -244,22 +249,45 @@ mvn spotless:apply
 
 ### Docker Operations
 
-Build and run all services:
+The project uses a modular Docker Compose configuration split across multiple files:
+- `docker-compose.infrastructure.yml` - Core infrastructure (postgres, vault, networks, volumes)
+- `docker-compose.directory.yml` - Directory microservices (4 instances)
+- `docker-compose.apps.yml` - Application services (incident, notification, sftp)
+- `docker-compose.yml` - Main orchestration file that includes all groups
+
+**Build and run all services:**
 ```bash
 docker compose up --build
 ```
 
-Run specific service:
+**Run specific service groups:**
 ```bash
-docker compose up policyholders
-docker compose up experts
-docker compose up providers
+# Infrastructure only (postgres + vault)
+docker compose -f docker-compose.infrastructure.yml up -d
+
+# Infrastructure + directory services
+docker compose -f docker-compose.infrastructure.yml -f docker-compose.directory.yml up -d
+
+# All services (same as using docker-compose.yml)
+docker compose up -d
+```
+
+**Run specific service:**
+```bash
+docker compose up policyholders-svc
+docker compose up experts-svc
+docker compose up incident-svc
 docker compose up sftp-server
 ```
 
-Stop all services:
+**Stop all services:**
 ```bash
 docker compose down
+```
+
+**View merged configuration:**
+```bash
+docker compose config
 ```
 
 ## Cross-Cutting Concerns
