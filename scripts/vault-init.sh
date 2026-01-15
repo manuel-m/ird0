@@ -11,15 +11,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 VAULT_ADDR="${VAULT_ADDR:-http://localhost:8200}"
-VAULT_TOKEN="${VAULT_TOKEN:-dev-root-token}"
+VAULT_TOKEN="${VAULT_DEV_TOKEN:-dev-root-token}"
+PROJECT_NAME="${PROJECT_NAME:-insure}"
 
 echo "Vault initialization script"
 echo "VAULT_ADDR: $VAULT_ADDR"
 echo "PROJECT_DIR: $PROJECT_DIR"
+echo "PROJECT_NAME: $PROJECT_NAME"
 
 # Helper function to run vault commands inside the container
 vault_cmd() {
-    docker compose exec -e VAULT_TOKEN="$VAULT_TOKEN" vault vault "$@"
+    docker compose -p "$PROJECT_NAME" exec -e VAULT_TOKEN="$VAULT_TOKEN" vault vault "$@"
 }
 . .env
 # Wait for Vault to be ready
@@ -63,9 +65,9 @@ if [ ! -f "$TEMP_KEY" ]; then
 fi
 
 echo "Storing host key in Vault..."
-docker compose cp "$TEMP_KEY" vault:/tmp/host_key
-docker compose cp "${TEMP_KEY}.pub" vault:/tmp/host_key.pub
-docker compose exec vault sh -c '
+docker compose -p "$PROJECT_NAME" cp "$TEMP_KEY" vault:/tmp/host_key
+docker compose -p "$PROJECT_NAME" cp "${TEMP_KEY}.pub" vault:/tmp/host_key.pub
+docker compose -p "$PROJECT_NAME" exec vault sh -c '
     VAULT_TOKEN="'"$VAULT_TOKEN"'" vault kv put secret/ird0/sftp/host-key \
         private_key=@/tmp/host_key
     echo "Host key stored successfully"
@@ -79,8 +81,8 @@ KEYS_DIR="$PROJECT_DIR/keys"
 if [ -f "$KEYS_DIR/sftp_client_key" ]; then
     echo "Storing SFTP client key from file..."
     # Copy key to container temp location and store in Vault
-    docker compose cp "$KEYS_DIR/sftp_client_key" vault:/tmp/client_key
-    docker compose exec vault sh -c '
+    docker compose -p "$PROJECT_NAME" cp "$KEYS_DIR/sftp_client_key" vault:/tmp/client_key
+    docker compose -p "$PROJECT_NAME" exec vault sh -c '
         VAULT_TOKEN="'"$VAULT_TOKEN"'" vault kv put secret/ird0/sftp/client-key \
             private_key=@/tmp/client_key
         rm -f /tmp/client_key
@@ -93,8 +95,8 @@ fi
 # Store authorized keys (read from file)
 if [ -f "$KEYS_DIR/authorized_keys" ]; then
     echo "Storing authorized keys from file..."
-    docker compose cp "$KEYS_DIR/authorized_keys" vault:/tmp/authorized_keys
-    docker compose exec vault sh -c '
+    docker compose -p "$PROJECT_NAME" cp "$KEYS_DIR/authorized_keys" vault:/tmp/authorized_keys
+    docker compose -p "$PROJECT_NAME" exec vault sh -c '
         VAULT_TOKEN="'"$VAULT_TOKEN"'" vault kv put secret/ird0/sftp/authorized-keys \
             content=@/tmp/authorized_keys
         rm -f /tmp/authorized_keys
@@ -105,7 +107,7 @@ fi
 
 # Generate and store known_hosts from the host key we generated
 echo "Generating known_hosts entry..."
-docker compose exec vault sh -c '
+docker compose -p "$PROJECT_NAME" exec vault sh -c '
     if [ -f /tmp/host_key.pub ]; then
         HOST_KEY_PUB=$(cat /tmp/host_key.pub)
         KNOWN_HOSTS_ENTRY="[sftp-server]:2222 $HOST_KEY_PUB"
@@ -171,5 +173,5 @@ echo "  - ssh-client-signer/config/ca (CA public key)"
 echo "  - ssh-client-signer/roles/directory-service (signing role)"
 echo ""
 echo "To verify, run:"
-echo "  docker compose exec vault vault kv list secret/ird0"
-echo "  docker compose exec vault vault read ssh-client-signer/config/ca"
+echo "  docker compose -p $PROJECT_NAME exec vault vault kv list secret/ird0"
+echo "  docker compose -p $PROJECT_NAME exec vault vault read ssh-client-signer/config/ca"

@@ -1,0 +1,21 @@
+server:
+  port: 8086
+
+notification:
+  api:
+    base-path: /api/v1/notifications
+  webhook:
+    connect-timeout: 5000
+    read-timeout: 10000
+  retry:
+    max-attempts: 5
+    initial-delay: 1000
+    backoff-multiplier: 2.0
+    max-delay: 60000
+  scheduler:
+    fixed-delay: 30000
+    initial-delay: 10000
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/notifications_db

@@ -1,0 +1,20 @@
+server:
+  port: 8085
+
+incident:
+  api:
+    base-path: /api/v1/incidents
+  # Directory service URLs for validation
+  directory:
+    policyholders-url: ${POLICYHOLDERS_SERVICE_URL:http://localhost:8081}
+    insurers-url: ${INSURERS_SERVICE_URL:http://localhost:8084}
+    experts-url: ${EXPERTS_SERVICE_URL:http://localhost:8082}
+    providers-url: ${PROVIDERS_SERVICE_URL:http://localhost:8083}
+  # Notification service URL
+  notification:
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8086}
+    enabled: ${NOTIFICATION_ENABLED:true}
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/incidents_db

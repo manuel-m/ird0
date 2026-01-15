@@ -29,4 +29,5 @@ public class DirectoryEntryDTO {
 
   private String address;
   private String additionalInfo;
+  private String webhookUrl;
 }

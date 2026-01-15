@@ -12,6 +12,8 @@
     <modules>
         <module>microservices/directory</module>
         <module>microservices/sftp-server</module>
+        <module>microservices/incident</module>
+        <module>microservices/notification</module>
         <module>utilities/directory-data-generator</module>
     </modules>
 

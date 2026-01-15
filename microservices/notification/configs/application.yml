@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: notification-service
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: ${POSTGRES_USER:directory_user}
+    password: ${POSTGRES_PASSWORD:directory_pass}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.ird0.notification: DEBUG
+    org.springframework.web: INFO

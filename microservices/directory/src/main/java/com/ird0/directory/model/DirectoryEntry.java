@@ -32,6 +32,8 @@ public class DirectoryEntry {
 
   private String additionalInfo;
 
+  private String webhookUrl;
+
   @PrePersist
   public void generateId() {
     if (this.id == null) {

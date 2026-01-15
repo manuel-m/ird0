@@ -1,0 +1,13 @@
+server:
+  port: 8084
+
+directory:
+  api:
+    base-path: /api/insurers
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/insurers_db
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.integration.IntegrationAutoConfiguration
