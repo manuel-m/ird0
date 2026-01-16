@@ -1,5 +1,6 @@
 package com.ird0.incident.exception;
 
+import com.ird0.commons.exception.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;

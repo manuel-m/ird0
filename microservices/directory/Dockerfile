@@ -5,7 +5,16 @@ WORKDIR /app
 
 # Copy only POM files first (for dependency caching)
 COPY pom.xml .
+COPY utilities/commons/pom.xml ./utilities/commons/
 COPY microservices/directory/pom.xml ./microservices/directory/
+
+# Install parent POM and download commons dependencies (this layer is cached)
+RUN mvn -N install -B && \
+    mvn -f utilities/commons/pom.xml dependency:resolve dependency:resolve-plugins -B
+
+# Copy commons source and install it
+COPY utilities/commons/src ./utilities/commons/src
+RUN mvn -f utilities/commons/pom.xml install -DskipTests -B
 
 # Download all dependencies (this layer is cached and reused across all 3 services)
 # This creates a separate Docker layer that only invalidates when POM files change

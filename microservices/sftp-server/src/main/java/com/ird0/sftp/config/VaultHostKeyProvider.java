@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,12 +43,17 @@ public class VaultHostKeyProvider implements KeyPairProvider {
     log.info("Loading SFTP host key from Vault...");
 
     VaultResponse response = vaultTemplate.read(VAULT_PATH);
-    if (response == null || response.getData() == null) {
+    if (response == null) {
       throw new IllegalStateException("SFTP host key not found in Vault at: " + VAULT_PATH);
     }
 
+    Map<String, Object> responseData = response.getData();
+    if (responseData == null) {
+      throw new IllegalStateException("SFTP host key response has no data at: " + VAULT_PATH);
+    }
+
     @SuppressWarnings("unchecked")
-    Map<String, Object> data = (Map<String, Object>) response.getData().get("data");
+    Map<String, Object> data = (Map<String, Object>) responseData.get("data");
     if (data == null) {
       throw new IllegalStateException("SFTP host key data is null in Vault at: " + VAULT_PATH);
     }
@@ -67,10 +73,18 @@ public class VaultHostKeyProvider implements KeyPairProvider {
         new ByteArrayInputStream(pemContent.getBytes(StandardCharsets.UTF_8))) {
       Iterable<KeyPair> keyPairs =
           SecurityUtils.loadKeyPairIdentities(null, null, inputStream, null);
-      for (KeyPair keyPair : keyPairs) {
-        return keyPair;
+      if (keyPairs == null) {
+        throw new IOException("Key pair loader returned null for PEM content");
       }
-      throw new IOException("No key pair found in PEM content");
+      Iterator<KeyPair> iterator = keyPairs.iterator();
+      if (!iterator.hasNext()) {
+        throw new IOException("No key pair found in PEM content");
+      }
+      KeyPair keyPair = iterator.next();
+      if (keyPair == null) {
+        throw new IOException("Key pair iterator returned null key pair");
+      }
+      return keyPair;
     }
   }
 

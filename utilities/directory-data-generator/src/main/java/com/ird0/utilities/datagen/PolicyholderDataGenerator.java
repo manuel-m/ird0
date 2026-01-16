@@ -9,7 +9,10 @@ import net.datafaker.Faker;
 /** Generates realistic fake policyholder data using Datafaker. */
 public class PolicyholderDataGenerator {
 
-  private static final String[] TYPES = {"individual", "family", "corporate"};
+  private static final String TYPE_INDIVIDUAL = "individual";
+  private static final String TYPE_FAMILY = "family";
+  private static final String TYPE_CORPORATE = "corporate";
+  private static final String[] TYPES = {TYPE_INDIVIDUAL, TYPE_FAMILY, TYPE_CORPORATE};
   private final Faker faker;
   private final Random random;
 
@@ -54,9 +57,9 @@ public class PolicyholderDataGenerator {
 
   private String generateNameByType(String type) {
     return switch (type) {
-      case "individual" -> faker.name().fullName();
-      case "family" -> faker.name().lastName() + " Family";
-      case "corporate" -> faker.company().name();
+      case TYPE_INDIVIDUAL -> faker.name().fullName();
+      case TYPE_FAMILY -> faker.name().lastName() + " Family";
+      case TYPE_CORPORATE -> faker.company().name();
       default -> faker.name().fullName();
     };
   }
@@ -69,9 +72,9 @@ public class PolicyholderDataGenerator {
 
   private String generateAdditionalInfo(String type) {
     return switch (type) {
-      case "individual" -> "Account since " + faker.date().birthday().toString();
-      case "family" -> "Members: " + (random.nextInt(5) + 2);
-      case "corporate" ->
+      case TYPE_INDIVIDUAL -> "Account since " + faker.date().birthday().toString();
+      case TYPE_FAMILY -> "Members: " + (random.nextInt(5) + 2);
+      case TYPE_CORPORATE ->
           "Industry: " + faker.company().industry() + ", Employees: " + (random.nextInt(500) + 10);
       default -> "";
     };

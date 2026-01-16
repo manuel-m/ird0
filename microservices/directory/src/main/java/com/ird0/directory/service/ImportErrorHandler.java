@@ -97,7 +97,7 @@ public class ImportErrorHandler {
 
     double delay =
         properties.getRetry().getInitialDelay()
-            * Math.pow(properties.getRetry().getBackoffMultiplier(), retryCount - 1);
+            * Math.pow(properties.getRetry().getBackoffMultiplier(), (retryCount - 1));
 
     long maxDelay = properties.getRetry().getMaxDelay();
     return Math.min((long) delay, maxDelay);

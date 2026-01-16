@@ -1,4 +1,4 @@
-package com.ird0.directory.exception;
+package com.ird0.commons.exception;
 
 import java.time.LocalDateTime;
 import lombok.Getter;

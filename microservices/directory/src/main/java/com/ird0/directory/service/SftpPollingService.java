@@ -103,7 +103,9 @@ public class SftpPollingService {
 
       // Set the file's modification time to match remote
       File localFile = localPath.toFile();
-      localFile.setLastModified(remoteTimestamp);
+      if (!localFile.setLastModified(remoteTimestamp)) {
+        log.warn("Failed to set last modified time for file: {}", filename);
+      }
 
       // Process the downloaded file
       csvFileProcessor.processFile(localFile);

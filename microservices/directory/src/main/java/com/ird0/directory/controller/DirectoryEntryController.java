@@ -1,6 +1,7 @@
 package com.ird0.directory.controller;
 
 import com.ird0.directory.dto.DirectoryEntryDTO;
+import com.ird0.directory.dto.ImportResult;
 import com.ird0.directory.mapper.DirectoryEntryMapper;
 import com.ird0.directory.model.DirectoryEntry;
 import com.ird0.directory.service.CsvImportService;
@@ -14,7 +15,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -61,8 +70,7 @@ public class DirectoryEntryController {
   }
 
   @PostMapping("/import")
-  public ResponseEntity<CsvImportService.ImportResult> uploadCsv(
-      @RequestParam("file") MultipartFile file) {
+  public ResponseEntity<ImportResult> uploadCsv(@RequestParam("file") MultipartFile file) {
 
     if (file.isEmpty()) {
       return ResponseEntity.badRequest().build();
@@ -74,8 +82,7 @@ public class DirectoryEntryController {
     }
 
     try (InputStream inputStream = file.getInputStream()) {
-      CsvImportService.ImportResult result =
-          csvImportService.importFromCsvWithBatching(inputStream);
+      ImportResult result = csvImportService.importFromCsvWithBatching(inputStream);
       return ResponseEntity.ok(result);
     } catch (IOException e) {
       log.error("Failed to process uploaded CSV: {}", e.getMessage());

@@ -1,6 +1,8 @@
 package com.ird0.directory.service;
 
 import com.ird0.directory.config.SftpImportProperties;
+import com.ird0.directory.dto.ImportResult;
+import com.ird0.directory.exception.CsvProcessingException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -53,8 +55,7 @@ public class CsvFileProcessor {
     }
 
     try (InputStream inputStream = new FileInputStream(csvFile)) {
-      CsvImportService.ImportResult result =
-          csvImportService.importFromCsvWithBatching(inputStream);
+      ImportResult result = csvImportService.importFromCsvWithBatching(inputStream);
 
       log.info(
           "Import completed for {}: {} total, {} new, {} updated, {} unchanged, {} failed",
@@ -79,9 +80,10 @@ public class CsvFileProcessor {
 
   private void deleteFile(File csvFile) {
     if (csvFile.exists()) {
-      if (csvFile.delete()) {
+      try {
+        Files.delete(csvFile.toPath());
         log.debug("Deleted file: {}", csvFile.getName());
-      } else {
+      } catch (IOException e) {
         log.warn("Failed to delete file: {}", csvFile.getName());
       }
     }
@@ -91,7 +93,7 @@ public class CsvFileProcessor {
     if (!properties.getRetry().isEnabled() || !properties.getErrorHandling().isEnabled()) {
       log.error("Failed to process file {}: {}", filename, e.getMessage(), e);
       deleteFile(csvFile);
-      throw new RuntimeException("CSV processing failed", e);
+      throw new CsvProcessingException("CSV processing failed", e);
     }
 
     int retryCount = errorHandler.getRetryCount(filename);

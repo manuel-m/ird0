@@ -1,6 +1,7 @@
 package com.ird0.notification.service;
 
 import com.ird0.notification.dto.WebhookRequest;
+import com.ird0.notification.exception.NotificationNotFoundException;
 import com.ird0.notification.model.Notification;
 import com.ird0.notification.model.NotificationStatus;
 import com.ird0.notification.repository.NotificationRepository;
@@ -18,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
 
   private final NotificationRepository notificationRepository;
-  private final WebhookDispatcher webhookDispatcher;
 
   @Transactional
   public Notification createNotification(WebhookRequest request) {
@@ -53,17 +53,12 @@ public class NotificationService {
     Notification saved = notificationRepository.save(notification);
     log.info("Created notification with id: {}", saved.getId());
 
-    // Optionally dispatch immediately
-    // webhookDispatcher.dispatchNotification(saved);
-
     return saved;
   }
 
   @Transactional(readOnly = true)
   public Notification getById(UUID id) {
-    return notificationRepository
-        .findById(id)
-        .orElseThrow(() -> new RuntimeException("Notification not found: " + id));
+    return findByIdOrThrow(id);
   }
 
   @Transactional(readOnly = true)
@@ -78,13 +73,12 @@ public class NotificationService {
 
   @Transactional
   public Notification retryNotification(UUID id) {
-    Notification notification = getById(id);
+    Notification notification = findByIdOrThrow(id);
 
     if (notification.getStatus() == NotificationStatus.FAILED) {
       notification.setStatus(NotificationStatus.PENDING);
       notification.setNextRetryAt(null);
       notification.setRetryCount(0);
-      notification = notificationRepository.save(notification);
       log.info("Reset notification {} for retry", id);
     }
 
@@ -93,12 +87,22 @@ public class NotificationService {
 
   @Transactional
   public void cancelNotification(UUID id) {
-    Notification notification = getById(id);
+    Notification notification = findByIdOrThrow(id);
 
     if (notification.getStatus() == NotificationStatus.PENDING) {
       notification.setStatus(NotificationStatus.CANCELLED);
-      notificationRepository.save(notification);
       log.info("Cancelled notification {}", id);
     }
+  }
+
+  /**
+   * Private helper to find notification by ID or throw exception. This method is intentionally
+   * non-transactional to avoid proxy bypass issues when called from other transactional methods in
+   * this class.
+   */
+  private Notification findByIdOrThrow(UUID id) {
+    return notificationRepository
+        .findById(id)
+        .orElseThrow(() -> new NotificationNotFoundException(id));
   }
 }

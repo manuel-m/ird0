@@ -15,6 +15,7 @@ public class IncidentProperties {
 
   @Data
   public static class Api {
+    @SuppressWarnings("java:S1075") // Default value, configurable via properties
     private String basePath = "/api/v1/incidents";
   }
 

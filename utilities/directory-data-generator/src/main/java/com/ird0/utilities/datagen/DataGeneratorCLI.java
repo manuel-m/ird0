@@ -25,6 +25,7 @@ import picocli.CommandLine.Parameters;
     mixinStandardHelpOptions = true,
     version = "1.0.0",
     description = "Generates fake policyholder data compatible with DirectoryEntry model")
+@SuppressWarnings("java:S106") // CLI tool intentionally uses System.out/System.err
 public class DataGeneratorCLI implements Callable<Integer> {
 
   @Parameters(
@@ -86,14 +87,14 @@ public class DataGeneratorCLI implements Callable<Integer> {
     try (FileWriter writer = new FileWriter(filePath);
         CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat)) {
 
-      for (DirectoryEntry record : records) {
+      for (DirectoryEntry entry : records) {
         csvPrinter.printRecord(
-            record.getName(),
-            record.getType(),
-            record.getEmail(),
-            record.getPhone(),
-            record.getAddress(),
-            record.getAdditionalInfo());
+            entry.getName(),
+            entry.getType(),
+            entry.getEmail(),
+            entry.getPhone(),
+            entry.getAddress(),
+            entry.getAdditionalInfo());
       }
 
       csvPrinter.flush();

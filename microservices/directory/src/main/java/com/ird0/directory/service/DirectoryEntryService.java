@@ -1,6 +1,6 @@
 package com.ird0.directory.service;
 
-import com.ird0.directory.exception.EntityNotFoundException;
+import com.ird0.commons.exception.EntityNotFoundException;
 import com.ird0.directory.model.DirectoryEntry;
 import com.ird0.directory.repository.DirectoryEntryRepository;
 import java.util.List;

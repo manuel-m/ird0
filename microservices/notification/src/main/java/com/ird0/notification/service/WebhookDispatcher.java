@@ -13,7 +13,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
@@ -50,7 +49,6 @@ public class WebhookDispatcher {
     }
   }
 
-  @Transactional
   public void dispatchNotification(Notification notification) {
     log.info(
         "Dispatching notification {} to {}", notification.getId(), notification.getWebhookUrl());
