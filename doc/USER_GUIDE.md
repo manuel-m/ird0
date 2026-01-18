@@ -57,6 +57,8 @@ For detailed architecture, see [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ### Initial Setup
 
+**linux / wsl**
+
 ```bash
 # Clone repository
 git clone <repository-url>
@@ -66,16 +68,7 @@ cd ird0
 cp .env.example .env
 
 # Build and start all services (includes Vault)
-docker compose up --build -d
-
-# Wait for Vault to be healthy
-sleep 15
-
-# Initialize Vault with SSH CA and secrets
-./scripts/vault-init.sh
-
-# Restart services to pick up Vault configuration
-docker compose restart policyholders sftp-server
+make
 
 # Verify services
 docker compose ps
@@ -101,7 +94,7 @@ curl http://localhost:8083/actuator/health
 curl http://localhost:9090/actuator/health
 
 # PostgreSQL
-docker compose exec postgres psql -U directory_user -d policyholders_db -c "SELECT 1"
+docker compose exec postgres psql -U user_changeme -d policyholders_db -c "SELECT 1"
 ```
 
 If `scripts/verify-services.sh` exists:
@@ -193,7 +186,7 @@ Docker Compose automatically resolves dependencies across the split files when u
 5. Application services (incident, notification) wait for their dependencies
 
 **Health Checks:**
-- PostgreSQL: `pg_isready -U directory_user` every 10s, 5 retries, 5s timeout
+- PostgreSQL: `pg_isready -U user_changeme` every 10s, 5 retries, 5s timeout
 - Directory services: Spring Boot Actuator `/actuator/health`
 - SFTP server: Spring Boot Actuator on port 9090
 
@@ -226,8 +219,8 @@ docker compose logs policyholders | grep "Import completed"
 
 - **Host**: `postgres` (Docker network) / `localhost` (external)
 - **Port**: 5432
-- **User**: `directory_user`
-- **Password**: `directory_pass` **⚠️ Change in production!**
+- **User**: `user_changeme`
+- **Password**: `password_changeme`
 
 **Databases:**
 - `policyholders_db` - Policyholders service data
@@ -238,12 +231,12 @@ docker compose logs policyholders | grep "Import completed"
 
 **Via Docker:**
 ```bash
-docker compose exec postgres psql -U directory_user -d policyholders_db
+docker compose exec postgres psql -U user_changeme -d policyholders_db
 ```
 
 **Via local psql client:**
 ```bash
-psql -h localhost -p 5432 -U directory_user -d policyholders_db
+psql -h localhost -p 5432 -U user_changeme -d policyholders_db
 ```
 
 ### Schema Management
@@ -272,7 +265,7 @@ SELECT COUNT(*) FROM directory_entry;
 
 **Single database backup:**
 ```bash
-docker compose exec postgres pg_dump -U directory_user policyholders_db > backup-policyholders-$(date +%Y%m%d).sql
+docker compose exec postgres pg_dump -U user_changeme policyholders_db > backup-policyholders-$(date +%Y%m%d).sql
 ```
 
 **All databases backup:**
@@ -293,12 +286,12 @@ docker run --rm \
 **Restore single database:**
 ```bash
 # Option 1: Restore to existing database
-cat backup-policyholders.sql | docker compose exec -T postgres psql -U directory_user -d policyholders_db
+cat backup-policyholders.sql | docker compose exec -T postgres psql -U user_changeme -d policyholders_db
 
 # Option 2: Drop and recreate first (DESTRUCTIVE)
 docker compose exec postgres psql -U postgres -c "DROP DATABASE policyholders_db;"
-docker compose exec postgres psql -U postgres -c "CREATE DATABASE policyholders_db OWNER directory_user;"
-cat backup-policyholders.sql | docker compose exec -T postgres psql -U directory_user -d policyholders_db
+docker compose exec postgres psql -U postgres -c "CREATE DATABASE policyholders_db OWNER user_changeme;"
+cat backup-policyholders.sql | docker compose exec -T postgres psql -U user_changeme -d policyholders_db
 ```
 
 **Restore volume:**
@@ -719,7 +712,7 @@ docker compose restart policyholders sftp-server
 environment:
   POSTGRES_HOST: postgres
   POSTGRES_PORT: 5432
-  POSTGRES_USER: directory_user
+  POSTGRES_USER: user_changeme
   POSTGRES_PASSWORD: directory_pass  # Change in production!
   SFTP_HOST: sftp-server
   SFTP_PORT: 2222
@@ -768,6 +761,7 @@ docker compose up -d policyholders
 curl http://localhost:8081/actuator/health  # Policyholders
 curl http://localhost:8082/actuator/health  # Experts
 curl http://localhost:8083/actuator/health  # Providers
+curl http://localhost:8084/actuator/health  # Insurers
 ```
 
 **SFTP Server:**
@@ -976,99 +970,13 @@ docker compose ps postgres
 docker compose exec postgres psql -U postgres -l
 
 # Test connection
-docker compose exec postgres psql -U directory_user -d policyholders_db -c "SELECT 1"
+docker compose exec postgres psql -U user_changeme -d policyholders_db -c "SELECT 1"
 
 # Check credentials
 docker compose exec policyholders env | grep POSTGRES
 ```
 
-**Common causes:**
-- PostgreSQL container not running
-- Wrong credentials (check env vars)
-- Database not created (check init script)
-- Network issue (check Docker network)
 
-### SFTP Import Not Working
-
-**Symptoms:** No "Import completed" logs appear
-
-**Diagnosis:**
-```bash
-# Check SFTP import enabled
-docker compose exec policyholders env | grep SFTP_IMPORT
-
-# Check SFTP server reachable
-docker compose exec policyholders nc -zv sftp-server 2222
-
-# Test SFTP authentication
-sftp -i ./keys/sftp_client_key -P 2222 policyholder-importer@localhost
-
-# Check metadata store
-docker compose exec policyholders ls -la /app/data/sftp-metadata
-```
-
-**Common causes:**
-- SFTP import disabled (only enabled on Policyholders)
-- SSH key missing or wrong permissions
-- SFTP server not running
-- No CSV files on SFTP server
-- File timestamp unchanged (metadata store says "no change")
-
-### SFTP Authentication Failed
-
-**Symptoms:** "Authentication failed" in logs or sftp connection rejected
-
-**Diagnosis:**
-```bash
-# Check key format and permissions
-ls -la ./keys/sftp_client_key*
-ls -la ./keys/authorized_keys
-ls -la ./keys/known_hosts
-
-# Verify key is RSA (not Ed25519)
-head -n1 ./keys/sftp_client_key.pub
-
-# Check authorized_keys format (should have 3 fields)
-cat ./keys/authorized_keys
-
-# Test with verbose output
-sftp -vvv -i ./keys/sftp_client_key -P 2222 policyholder-importer@localhost
-```
-
-**Common causes:**
-- **Wrong key permissions** - In Docker, all key files must be **644** (readable by non-root container users)
-- Using Ed25519 keys (only RSA supported)
-- Wrong authorized_keys format (must have 3 fields: key-type, key-data, username)
-- Username mismatch in authorized_keys (third field must match SFTP username)
-- Key not mounted in container
-- Missing or outdated known_hosts file
-- Host key changed (regenerate known_hosts)
-
-### SSH Key Permission Issues
-
-**Symptoms:**
-- SFTP server fails with "Authorized keys file is not readable"
-- Policyholders service fails with "AccessDeniedException" for sftp_client_key
-- "Server key did not validate" errors
-
-**Solution:**
-```bash
-# Set correct permissions for Docker (644 for all key files)
-chmod 644 ./keys/sftp_client_key
-chmod 644 ./keys/sftp_client_key.pub
-chmod 644 ./keys/authorized_keys
-chmod 644 ./keys/known_hosts
-
-# Regenerate known_hosts if host key changed
-ssh-keyscan -p 2222 localhost 2>/dev/null | sed 's/\[localhost\]:2222/[sftp-server]:2222/' > ./keys/known_hosts
-ssh-keyscan -p 2222 localhost 2>/dev/null >> ./keys/known_hosts
-chmod 644 ./keys/known_hosts
-
-# Restart services
-docker compose restart sftp-server policyholders
-```
-
-**Why 644?** Docker containers run as non-root users (appuser) who need read access to key files. Traditional 600 permissions prevent the container user from reading the files.
 
 ### CSV Import Errors
 
@@ -1197,11 +1105,6 @@ head ./data/policyholders.csv
 │   ├── sftp-metadata/         # Import timestamps (persistent)
 │   ├── sftp-errors/           # Failed imports for retry
 │   └── sftp-failed/           # Exhausted retry attempts
-├── keys/
-│   ├── hostkey.pem            # SFTP server host key
-│   ├── sftp_client_key        # Client private key
-│   ├── sftp_client_key.pub    # Client public key
-│   └── authorized_keys        # Allowed public keys
 ├── temp/
 │   └── sftp-downloads/        # Downloaded CSV files (temporary)
 └── config/
@@ -1226,9 +1129,9 @@ curl http://localhost:8082/actuator/health  # Experts health
 curl http://localhost:8083/actuator/health  # Providers health
 
 # DATABASE
-docker compose exec postgres psql -U directory_user -d policyholders_db  # Connect
-docker compose exec postgres pg_dump -U directory_user policyholders_db > backup.sql  # Backup
-cat backup.sql | docker compose exec -T postgres psql -U directory_user -d policyholders_db  # Restore
+docker compose exec postgres psql -U user_changeme -d policyholders_db  # Connect
+docker compose exec postgres pg_dump -U user_changeme policyholders_db > backup.sql  # Backup
+cat backup.sql | docker compose exec -T postgres psql -U user_changeme -d policyholders_db  # Restore
 
 # SFTP
 sftp -i ./keys/sftp_client_key -P 2222 policyholder-importer@localhost  # Test connection
@@ -1255,7 +1158,7 @@ docker system prune -a                      # Clean up unused Docker resources
 |----------|---------|-------------|
 | `POSTGRES_HOST` | postgres | PostgreSQL hostname |
 | `POSTGRES_PORT` | 5432 | PostgreSQL port |
-| `POSTGRES_USER` | directory_user | Database username |
+| `POSTGRES_USER` | user_changeme | Database username |
 | `POSTGRES_PASSWORD` | directory_pass | Database password |
 | `SFTP_HOST` | localhost | SFTP server hostname |
 | `SFTP_PORT` | 2222 | SFTP server port |

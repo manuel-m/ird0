@@ -2,8 +2,9 @@ include .env
 export
 
 CORE_SERVICES := vault postgres
+SONAR_COMPOSE_FILE := deploy/docker-compose.sonar.yml
 
-.PHONY: all restart sonar reinit issues
+.PHONY: all restart sonar sonar-start sonar-stop sonar-status sonar-logs sonar-restart reinit issues
 
 all: restart
 
@@ -32,7 +33,35 @@ start-rest:
 
 
 sonar:
+	@echo "Checking if SonarQube is running..."
+	@docker compose -p $(PROJECT_NAME) -f $(SONAR_COMPOSE_FILE) ps | grep -q sonarqube || (echo "ERROR: SonarQube is not running. Start it with: make sonar-start" && exit 1)
+	@echo "Running SonarQube analysis..."
 	mvn clean verify sonar:sonar -Dsonar.host.url=http://$(SONAR_HOST):$(SONAR_PORT) -Dsonar.token=$(SONAR_TOKEN)
 
-issues: 
+issues:
 	curl -u $(SONAR_TOKEN): "http://$(SONAR_HOST):$(SONAR_PORT)/api/issues/search?componentKeys=$(SONAR_PROJECT)"
+
+# SonarQube on-demand targets
+sonar-start:
+	@echo "Starting SonarQube (this may take 1-2 minutes)..."
+	docker compose -p $(PROJECT_NAME) -f $(SONAR_COMPOSE_FILE) up -d
+	@echo "SonarQube starting... Wait for health check before running analysis."
+	@echo "Check status: make sonar-status"
+	@echo "Access UI: http://$(SONAR_HOST):$(SONAR_PORT)"
+
+sonar-stop:
+	@echo "Stopping SonarQube..."
+	docker compose -p $(PROJECT_NAME) -f $(SONAR_COMPOSE_FILE) down
+	@echo "SonarQube stopped (volumes preserved)"
+
+sonar-status:
+	@echo "Checking SonarQube status..."
+	@docker compose -p $(PROJECT_NAME) -f $(SONAR_COMPOSE_FILE) ps
+	@echo ""
+	@echo "Health status:"
+	@docker inspect --format='{{.State.Health.Status}}' $$(docker compose -p $(PROJECT_NAME) -f $(SONAR_COMPOSE_FILE) ps -q sonarqube 2>/dev/null) 2>/dev/null || echo "SonarQube is not running"
+
+sonar-logs:
+	docker compose -p $(PROJECT_NAME) -f $(SONAR_COMPOSE_FILE) logs -f sonarqube
+
+sonar-restart: sonar-stop sonar-start

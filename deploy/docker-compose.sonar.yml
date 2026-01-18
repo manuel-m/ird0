@@ -1,0 +1,56 @@
+# SonarQube Service - On-Demand Code Quality Analysis
+# This service is NOT started automatically with the main stack.
+# It requires significant resources (2 CPUs, 2GB RAM) and should only be started when needed.
+#
+# Usage:
+#   Start SonarQube:   make sonar-start
+#   Stop SonarQube:    make sonar-stop
+#   Check status:      make sonar-status
+#   View logs:         make sonar-logs
+#   Run analysis:      make sonar (SonarQube must be running first)
+#
+# Network: Connects to the existing 'insure_insurance-network' created by infrastructure.yml
+# Volumes: Data persists across restarts (projects, tokens, configurations preserved)
+
+services:
+  sonarqube:
+    image: sonarqube:lts-community
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          memory: 1G
+    ports:
+      - "${SONAR_PORT}:9000"
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-logs:/opt/sonarqube/logs
+      - sonarqube-extensions:/opt/sonarqube/extensions
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/api/system/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      insurance-network:
+        aliases:
+          - ${SONAR_HOST}
+
+volumes:
+  sonarqube-data:
+    driver: local
+  sonarqube-logs:
+    driver: local
+  sonarqube-extensions:
+    driver: local
+
+networks:
+  insurance-network:
+    external: true
+    name: insure_insurance-network

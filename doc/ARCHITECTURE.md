@@ -5,17 +5,22 @@
 IRD0 is an insurance platform built on a microservices architecture using Spring Boot 3.5.0 and Java 21. The system manages directory entries for policyholders, experts, and providers, with an integrated SFTP server for automated data imports.
 
 **Core Services:**
-- **Directory Service** - Multi-instance REST API for managing directory entries (policyholders, experts, providers)
+- **Directory Service** - Multi-instance REST API for managing directory entries (policyholders, experts, providers, insurers)
+- **Incident Service** - Insurance claim incident management with state machine and workflow orchestration
+- **Notification Service** - Webhook-based notification dispatch with retry logic and audit trail
 - **SFTP Server** - Secure file transfer service for exposing CSV files via SFTP protocol
 - **Data Generator Utility** - CLI tool for generating realistic test data
 
 **Key Architectural Characteristics:**
-- Multi-instance microservice pattern (single codebase, three deployments)
-- PostgreSQL multi-database architecture (three databases, single container)
+- Multi-instance microservice pattern (single codebase, multiple deployments)
+- PostgreSQL multi-database architecture (six databases, single container)
+- Microservices choreography with REST-based integration
+- Circuit breaker pattern for resilient inter-service communication
 - SFTP polling with intelligent change detection
 - Docker multi-stage builds with dependency caching
 - DTO layer with MapStruct for clean API contracts
 - UUID-based primary keys for global uniqueness
+- Event-driven notifications with webhook dispatch
 
 ## Multi-Instance Microservice Pattern
 
@@ -23,13 +28,14 @@ IRD0 is an insurance platform built on a microservices architecture using Spring
 
 The Directory Service uses a unique architectural pattern where a single microservice codebase is deployed three times with different runtime configurations. This approach balances code reuse with service isolation.
 
-**Three Service Instances:**
+**Service Instances:**
 
-| Instance | Port | API Base Path | Database | Purpose |
-|----------|------|---------------|----------|---------|
+| Instance      | Port | API Base Path        | Database | Purpose |
+|---------------|------|----------------------|----------|---------|
 | Policyholders | 8081 | `/api/policyholders` | `policyholders_db` | Manage policyholder directory |
-| Experts | 8082 | `/api/experts` | `experts_db` | Manage expert directory |
-| Providers | 8083 | `/api/providers` | `providers_db` | Manage provider directory |
+| Experts       | 8082 | `/api/experts`       | `experts_db` | Manage expert directory |
+| Providers     | 8083 | `/api/providers`     | `providers_db` | Manage provider directory |
+| Insurers      | 8084 | `/api/insurers`      | `insurers_db` | Manage insurers directory |
 
 ### Configuration Strategy
 
@@ -128,13 +134,13 @@ COPY configs/${APP_YML} /app/config/application.yml
 
 ### Database Structure
 
-The system uses a single PostgreSQL 16 container with three isolated databases, one per Directory Service instance.
+The system uses a single PostgreSQL 16 container with six isolated databases, supporting all microservices.
 
 **PostgreSQL Container:**
 - Image: `postgres:16-alpine`
 - Port: `5432`
 - Volume: `postgres-data` (named volume for persistence)
-- Initialization: Custom script creates three databases on first startup
+- Initialization: Custom script creates six databases on first startup
 
 **Databases:**
 
@@ -143,6 +149,9 @@ The system uses a single PostgreSQL 16 container with three isolated databases, 
 | `policyholders_db` | Policyholders Service | Policyholder directory entries |
 | `experts_db` | Experts Service | Expert directory entries |
 | `providers_db` | Providers Service | Provider directory entries |
+| `insurers_db` | Insurers Service | Insurer directory entries |
+| `incidents_db` | Incident Service | Insurance claim incidents |
+| `notifications_db` | Notification Service | Webhook notifications |
 
 **Shared Credentials:**
 - Username: `directory_user`
@@ -236,15 +245,15 @@ CREATE TABLE directory_entry (
 **Trade-offs:**
 - **No Cross-Instance Queries**: Cannot join policyholders with providers in SQL
 - **Transaction Boundaries**: Distributed transactions require application-level coordination
-- **Resource Overhead**: Three databases consume more memory than one (minimal with modern PostgreSQL)
+- **Resource Overhead**: Multiple databases consume more memory than one (minimal with modern PostgreSQL)
 
-**Why Single Container instead of Three PostgreSQL Instances?**
+**Why Single Container instead of Multiple PostgreSQL Instances?**
 
 **Advantages:**
 - **Resource Efficiency**: Single PostgreSQL process uses less memory
 - **Operational Simplicity**: One container to manage, monitor, backup
 - **Network Simplicity**: Single connection endpoint
-- **Cost**: Lower cloud infrastructure costs (single RDS instance vs. three)
+- **Cost**: Lower cloud infrastructure costs (single RDS instance vs. multiple instances)
 
 **Production Considerations:**
 - For high-scale production, consider separate PostgreSQL instances per service
@@ -376,6 +385,452 @@ PostgreSQL (policyholders_db)
 - Retry logic for failed imports (currently missing)
 - Import history tracking (audit table)
 - Manual import trigger REST endpoint (already implemented)
+
+## Incident Service Architecture
+
+### Overview
+
+The Incident Service manages insurance claim incidents through their complete lifecycle. It orchestrates workflows across directory services for validation and notification services for alerting, providing a central hub for incident management.
+
+**Service Details:**
+- Port: 8085 (host), 8080 (internal)
+- Database: `incidents_db` (PostgreSQL)
+- API Base Path: `/api/v1/incidents`
+- Integration: Directory Services (policyholders, insurers, experts), Notification Service
+
+> **For detailed implementation and API usage, see [microservices/incident/CLAUDE.md](../microservices/incident/CLAUDE.md)**
+
+### State Machine Architecture
+
+The Incident Service implements a finite state machine for incident lifecycle management with enforced transition rules.
+
+**Incident Lifecycle:**
+
+```
+┌─────────┐
+│ DECLARED│ ──────────────────────────┐
+└────┬────┘                           │
+     │                                │
+     │ Qualify                         │ Abandon
+     ▼                                │
+┌─────────┐                           │
+│QUALIFIED│ ──────────────┐           │
+└────┬────┘               │           │
+     │                    │           │
+     │ Assign Expert       │ Abandon   │
+     ▼                    │           │
+┌────────────┐            │           │
+│IN_PROGRESS │ ───────────┤           │
+└─────┬──────┘            │           │
+      │                   │           │
+      │ Resolve            │           │
+      ▼                   ▼           ▼
+┌─────────┐         ┌─────────────────┐
+│RESOLVED │         │   ABANDONED     │
+└─────────┘         └─────────────────┘
+(terminal)              (terminal)
+```
+
+**Valid State Transitions:**
+
+| From State | To States | Trigger |
+|------------|-----------|---------|
+| DECLARED | QUALIFIED, ABANDONED | Qualification review, Early abandonment |
+| QUALIFIED | IN_PROGRESS, ABANDONED | Expert assignment, Qualification rejected |
+| IN_PROGRESS | RESOLVED, ABANDONED | Completion, Process failure |
+| RESOLVED | (none) | Terminal state |
+| ABANDONED | (none) | Terminal state |
+
+**Transition Enforcement:**
+- Implemented via `IncidentStatus` enum with `isValidTransition()` method
+- Invalid transitions throw `InvalidStateTransitionException` (HTTP 400)
+- All state changes logged in `IncidentEvent` for audit trail
+
+### Microservices Integration
+
+**Directory Service Validation (Circuit Breaker Pattern):**
+
+The Incident Service validates entity references against Directory Services before creating or updating incidents:
+
+```
+Incident Service                 Directory Service              PostgreSQL
+      |                                  |                          |
+      | 1. Create Incident               |                          |
+      | {policyholderId, insurerId}      |                          |
+      |                                  |                          |
+      | 2. Validate Policyholder         |                          |
+      | GET /api/policyholders/{id}      |                          |
+      |--------------------------------->|                          |
+      |                                  |                          |
+      |                                  | 3. Query database        |
+      |                                  |------------------------->|
+      |                                  |                          |
+      |                                  | 4. Return entity         |
+      |                                  |<-------------------------|
+      |                                  |                          |
+      | 5. 200 OK {policyholder}         |                          |
+      |<---------------------------------|                          |
+      |                                  |                          |
+      | 6. Validate Insurer              |                          |
+      | (similar flow)                   |                          |
+      |                                  |                          |
+      | 7. Save incident                 |                          |
+      |---------------------------------------------------------------->|
+```
+
+**Validated Entities:**
+- **Policyholder**: Must exist in policyholders service before incident creation
+- **Insurer**: Must exist in insurers service before incident creation
+- **Expert**: Must exist in experts service before assignment
+- **Provider**: Optional validation when provider assigned
+
+**Circuit Breaker Configuration (Resilience4j):**
+- Sliding window size: 10 calls
+- Minimum calls for stats: 5
+- Failure rate threshold: 50%
+- Open state duration: 30 seconds
+- On circuit open: Throws `DirectoryValidationException` with "service unavailable" message
+
+**Notification Integration (Event Publishing):**
+
+The Incident Service publishes notifications to the Notification Service for key lifecycle events:
+
+```
+Incident Service                Notification Service           External Webhook
+      |                                  |                          |
+      | 1. Status update (DECLARED)      |                          |
+      |                                  |                          |
+      | 2. POST /notifications           |                          |
+      | {eventType: "INCIDENT_DECLARED"  |                          |
+      |  webhookUrl, payload}            |                          |
+      |--------------------------------->|                          |
+      |                                  |                          |
+      | 3. 201 Created {id, status}      |                          |
+      |<---------------------------------|                          |
+      |                                  |                          |
+      |                                  | 4. Dispatch webhook      |
+      |                                  | POST {payload}           |
+      |                                  |------------------------->|
+      |                                  |                          |
+      |                                  |  5. 200 OK               |
+      |                                  |<-------------------------|
+```
+
+**Published Events:**
+- `INCIDENT_DECLARED` - New incident created
+- `INCIDENT_QUALIFIED` - Incident qualified for processing
+- `INCIDENT_ABANDONED` - Incident abandoned
+- `EXPERT_ASSIGNED` - Expert assigned to incident
+- `STATUS_CHANGED` - Any status transition
+
+### Data Model
+
+**Incident Entity (PostgreSQL JSONB):**
+
+```sql
+CREATE TABLE incidents (
+    id UUID PRIMARY KEY,
+    reference_number VARCHAR(255) UNIQUE NOT NULL,  -- INC-YYYY-NNNNNN
+    policyholder_id UUID NOT NULL,
+    insurer_id UUID NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    description TEXT,
+    incident_date TIMESTAMP NOT NULL,
+    estimated_damage NUMERIC(15,2),
+    currency VARCHAR(3) DEFAULT 'EUR',
+    location JSONB,  -- {address, latitude, longitude}
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE expert_assignments (
+    id UUID PRIMARY KEY,
+    incident_id UUID REFERENCES incidents(id),
+    expert_id UUID NOT NULL,
+    scheduled_date TIMESTAMP,
+    completed_date TIMESTAMP,
+    notes TEXT,
+    created_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE comments (
+    id UUID PRIMARY KEY,
+    incident_id UUID REFERENCES incidents(id),
+    content TEXT NOT NULL,
+    author_id UUID NOT NULL,
+    author_type VARCHAR(50),  -- POLICYHOLDER, EXPERT, INSURER, ADMIN
+    created_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE incident_events (
+    id UUID PRIMARY KEY,
+    incident_id UUID REFERENCES incidents(id),
+    event_type VARCHAR(100) NOT NULL,  -- STATUS_CHANGED, EXPERT_ASSIGNED, etc.
+    previous_value VARCHAR(255),
+    new_value VARCHAR(255),
+    description TEXT,
+    created_at TIMESTAMP NOT NULL
+);
+```
+
+**Reference Number Generation:**
+- Format: `INC-YYYY-NNNNNN` (e.g., `INC-2026-000001`)
+- Year: Current year (4 digits)
+- Sequence: Zero-padded 6-digit number, auto-incremented per year
+- Uniqueness: Enforced by database unique constraint
+- Implementation: `ReferenceNumberGenerator` service with database sequence
+
+### Design Rationale
+
+**Why State Machine over Free-Form Status?**
+
+**Advantages:**
+- **Data Integrity**: Invalid transitions prevented at application level
+- **Business Rules**: Lifecycle rules enforced by code, not training
+- **Audit Trail**: Every transition logged with context
+- **Predictability**: Clear understanding of allowed operations
+- **Testing**: Finite states enable comprehensive test coverage
+
+**Trade-offs:**
+- **Flexibility**: Adding new states requires code changes
+- **Complexity**: More complex than simple status field
+- **Learning Curve**: Developers must understand state machine semantics
+
+**Why Circuit Breaker for Directory Validation?**
+
+**Advantages:**
+- **Resilience**: Incident service remains responsive when directory services fail
+- **Fast Failure**: Fails quickly instead of waiting for timeout
+- **Service Protection**: Prevents cascade failures across services
+- **Automatic Recovery**: Circuit reopens after cooldown period
+
+**Trade-offs:**
+- **Eventual Consistency**: Circuit open means validation skipped (in this implementation, fails instead)
+- **Complexity**: Additional configuration and monitoring required
+
+**Why Synchronous Notifications over Event Bus?**
+
+**Advantages:**
+- **Simplicity**: No message broker infrastructure required
+- **Immediate Feedback**: Know if notification accepted or rejected
+- **Debugging**: Easier to trace request flow
+- **Cost**: No Kafka/RabbitMQ infrastructure costs
+
+**Trade-offs:**
+- **Coupling**: Incident service depends on Notification service availability
+- **Scalability**: Synchronous calls add latency to incident operations
+- **Reliability**: If notification fails, incident operation succeeds but notification lost (in current implementation)
+
+## Notification Service Architecture
+
+### Overview
+
+The Notification Service provides webhook-based notification dispatch with retry logic and comprehensive audit trails. It decouples notification delivery from business logic, allowing services to fire-and-forget while ensuring reliable webhook delivery.
+
+**Service Details:**
+- Port: 8086 (host), 8080 (internal)
+- Database: `notifications_db` (PostgreSQL)
+- API Base Path: `/api/v1/notifications`
+- Pattern: Asynchronous webhook dispatch with exponential backoff
+
+> **For detailed implementation and API usage, see [microservices/notification/CLAUDE.md](../microservices/notification/CLAUDE.md)**
+
+### Webhook Dispatch Architecture
+
+**Notification Lifecycle:**
+
+```
+┌─────────┐   Immediate     ┌──────┐   HTTP 200   ┌──────┐
+│ PENDING ├───────────────>│ SENT │──────────────>│(Done)│
+└────┬────┘   dispatch      └──────┘              └──────┘
+     │
+     │ HTTP 4xx/5xx
+     │ Network timeout
+     ▼
+┌─────────┐   Retry 1       ┌──────┐
+│ PENDING ├───(1s delay)───>│ SENT │
+└────┬────┘                 └──────┘
+     │
+     │ Failure
+     ▼
+┌─────────┐   Retry 2       ┌──────┐
+│ PENDING ├───(2s delay)───>│ SENT │
+└────┬────┘                 └──────┘
+     │
+     │ Failure
+     ▼
+┌─────────┐   Retry 3       ┌──────┐
+│ PENDING ├───(4s delay)───>│ SENT │
+└────┬────┘                 └──────┘
+     │
+     │ All retries exhausted
+     ▼
+┌────────┐
+│ FAILED │
+└────────┘
+```
+
+**Exponential Backoff Strategy:**
+
+| Attempt | Delay | Cumulative Time |
+|---------|-------|-----------------|
+| 1 (initial) | 0s | 0s |
+| 2 (retry 1) | 1s | 1s |
+| 3 (retry 2) | 2s | 3s |
+| 4 (retry 3) | 4s | 7s |
+| 5 (retry 4)* | 8s | 15s |
+
+*If `max-retries` configured > 3
+
+**Configuration:**
+- `webhook.initial-retry-delay`: Initial delay (default: 1000ms)
+- `webhook.retry-multiplier`: Multiplier for each retry (default: 2.0)
+- `webhook.max-retry-delay`: Cap on delay (default: 60000ms)
+- `webhook.max-retries`: Maximum attempts (default: 3)
+
+### HTTP Client Configuration
+
+**RestTemplate Configuration:**
+
+```java
+@Bean
+public RestTemplate restTemplate(NotificationProperties props) {
+    HttpComponentsClientHttpRequestFactory factory =
+        new HttpComponentsClientHttpRequestFactory();
+    factory.setConnectTimeout(props.getWebhook().getConnectTimeout());
+    factory.setReadTimeout(props.getWebhook().getReadTimeout());
+    return new RestTemplate(factory);
+}
+```
+
+**Timeouts:**
+- **Connect timeout**: 5000ms (time to establish TCP connection)
+- **Read timeout**: 10000ms (time to receive response after sending request)
+- **Total request timeout**: 15000ms (connect + read)
+
+**Failure Scenarios:**
+- **HTTP 4xx/5xx**: Stored as failure, triggers retry
+- **Network timeout**: Counted as failure, triggers retry
+- **Connection refused**: Counted as failure, triggers retry
+- **SSL errors**: Counted as failure, triggers retry
+
+### Data Model
+
+**Notification Entity:**
+
+```sql
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY,
+    webhook_url VARCHAR(2048) NOT NULL,
+    payload JSONB NOT NULL,
+    event_type VARCHAR(100),
+    event_id UUID,
+    incident_id UUID,
+    status VARCHAR(50) NOT NULL,  -- PENDING, SENT, FAILED, CANCELLED
+    retry_count INT DEFAULT 0,
+    max_retries INT DEFAULT 3,
+    next_retry_at TIMESTAMP,
+    last_attempt_at TIMESTAMP,
+    response_status INT,
+    response_body TEXT,
+    failure_reason TEXT,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX idx_notifications_status ON notifications(status);
+CREATE INDEX idx_notifications_incident_id ON notifications(incident_id);
+CREATE INDEX idx_notifications_next_retry ON notifications(next_retry_at) WHERE status = 'PENDING';
+```
+
+**Payload Format (JSONB):**
+
+```json
+{
+  "eventType": "INCIDENT_DECLARED",
+  "eventId": "550e8400-e29b-41d4-a716-446655440000",
+  "timestamp": "2026-01-18T10:30:00Z",
+  "incident": {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "referenceNumber": "INC-2026-000001",
+    "status": "DECLARED",
+    "type": "VEHICLE_ACCIDENT",
+    "policyholderId": "550e8400-e29b-41d4-a716-446655440002",
+    "insurerId": "550e8400-e29b-41d4-a716-446655440003",
+    "estimatedDamage": 5000.00,
+    "currency": "EUR"
+  }
+}
+```
+
+### Manual Retry Workflow
+
+**Retry Failed Notifications:**
+
+When a notification reaches FAILED status (all retries exhausted), it can be manually retried:
+
+```bash
+# Get failed notifications
+curl http://localhost:8086/api/v1/notifications/status/FAILED
+
+# Retry specific notification
+curl -X POST http://localhost:8086/api/v1/notifications/{id}/retry
+```
+
+**Retry Behavior:**
+- Resets `retry_count` to 0
+- Sets `status` back to PENDING
+- Schedules immediate dispatch
+- Clears previous `failure_reason`
+- Follows same exponential backoff on subsequent failures
+
+### Design Rationale
+
+**Why Separate Notification Service?**
+
+**Advantages:**
+- **Separation of Concerns**: Business logic services don't handle webhook complexity
+- **Reliability**: Retry logic centralized, not duplicated across services
+- **Audit Trail**: All notifications stored in single database
+- **Monitoring**: Single service to monitor webhook health
+- **Scalability**: Can scale notification dispatch independently
+
+**Trade-offs:**
+- **Additional Service**: More infrastructure to manage
+- **Network Hop**: Extra latency for notification dispatch
+- **Eventual Consistency**: Notifications not guaranteed to send in exact order
+
+**Why Synchronous REST over Message Queue?**
+
+**Advantages:**
+- **Simplicity**: No Kafka/RabbitMQ infrastructure
+- **Immediate Feedback**: Caller knows notification was accepted
+- **Deployment**: Fewer moving parts
+- **Cost**: Lower infrastructure costs
+
+**Trade-offs:**
+- **Scalability**: Limited to REST throughput
+- **Back pressure**: Slow webhook endpoints can slow calling service
+- **Reliability**: Lost if notification service down (mitigated by immediate retry on caller side)
+
+**Why In-Process Retry over Scheduled Job?**
+
+**Current Implementation**: Retry logic executed in same API call as creation
+
+**Advantages:**
+- **Simplicity**: No scheduler infrastructure (cron, Quartz)
+- **Immediate**: Retries happen quickly (seconds, not minutes)
+- **Low Latency**: Most notifications succeed on first attempt
+
+**Trade-offs:**
+- **Blocking**: Caller waits for all retries (max ~15s with default config)
+- **Resource Usage**: Thread held during retry delays
+
+**Future Enhancement**: Background job for retry execution
+- Spring `@Scheduled` for polling PENDING notifications
+- Allows caller to return immediately
+- Requires job orchestration (single instance execution)
 
 ## Vault SSH Certificate Authority Architecture
 
@@ -726,6 +1181,8 @@ public interface DirectoryEntryMapper {
 | **Hibernate** | ORM implementation | Mature, feature-complete, @PrePersist for UUID generation |
 | **Spring Boot Actuator** | Monitoring | Production-ready endpoints (health, metrics, info) |
 | **Spring Integration** | SFTP polling | Enterprise integration patterns, SFTP adapter built-in |
+| **Resilience4j** | Circuit breaker | Fault tolerance for inter-service calls, Spring Boot integration |
+| **Hypersistence Utils** | JSONB support | First-class JSONB mapping for Hibernate 6.x, type-safe |
 | **MapStruct** | DTO mapping | Type-safe, performant, compile-time generation |
 | **Lombok** | Boilerplate reduction | @Data, @Builder reduce verbosity |
 
@@ -821,7 +1278,9 @@ public interface DirectoryEntryMapper {
 ### Scaling Considerations
 
 **Current Capacity:**
-- Each service: ~10,000 requests/minute
+- Directory Services: ~10,000 requests/minute per instance
+- Incident Service: ~5,000 incident operations/minute
+- Notification Service: ~2,000 webhook dispatches/minute
 - Database: ~100,000 entries per database
 - SFTP Import: ~1,000 rows/second
 
@@ -829,6 +1288,9 @@ public interface DirectoryEntryMapper {
 
 **Horizontal Scaling (Future):**
 - Run multiple instances of each service behind load balancer
+- Directory Services: Stateless, can scale linearly
+- Incident Service: Requires distributed transaction coordination
+- Notification Service: Requires job scheduler for retry queue
 - Requires: Persistent metadata store (not in-memory)
 - Requires: Distributed locking for SFTP import
 
@@ -836,13 +1298,30 @@ public interface DirectoryEntryMapper {
 - Separate PostgreSQL instances per service
 - Read replicas for reporting queries
 - Connection pooling at application level
+- Incidents database: Partition by year (reference number)
+- Notifications database: Archive old notifications to separate storage
 
 **SFTP Scaling (Future):**
 - Multiple SFTP servers with shared storage
 - Load balancer for SFTP connections
 - Distributed file system (NFS, S3)
 
+**Notification Scaling (Future):**
+- Move retry logic to background jobs (async processing)
+- Use message queue (Kafka, RabbitMQ) for webhook dispatch
+- Separate webhook dispatcher service for horizontal scaling
+
 ## Related Documentation
+
+### Service-Specific Documentation
+
+- [microservices/directory/CLAUDE.md](../microservices/directory/CLAUDE.md) - Directory Service implementation and usage
+- [microservices/incident/CLAUDE.md](../microservices/incident/CLAUDE.md) - Incident Service implementation and usage
+- [microservices/notification/CLAUDE.md](../microservices/notification/CLAUDE.md) - Notification Service implementation and usage
+- [microservices/sftp-server/CLAUDE.md](../microservices/sftp-server/CLAUDE.md) - SFTP Server implementation and usage
+- [utilities/directory-data-generator/CLAUDE.md](../utilities/directory-data-generator/CLAUDE.md) - Data Generator usage
+
+### Architecture Topics
 
 - [USER_GUIDE.md](USER_GUIDE.md) - Operational procedures and step-by-step guides
 - [topics/vault-ssh-ca.md](topics/vault-ssh-ca.md) - Vault SSH Certificate Authority implementation

@@ -247,6 +247,46 @@ mvn spotless:apply
 - CI/CD pipelines should run `mvn spotless:check` to enforce formatting
 - Configuration is centralized in the root pom.xml, inherited by all modules
 
+### SonarQube Code Quality Analysis (On-Demand)
+
+SonarQube is an optional service for code quality analysis. It requires significant resources (2 CPUs, 2GB RAM) and is not started automatically.
+
+**Start SonarQube:**
+```bash
+make sonar-start
+```
+
+**Check SonarQube status:**
+```bash
+make sonar-status
+```
+
+**Run code analysis** (SonarQube must be running):
+```bash
+make sonar
+```
+
+**View SonarQube logs:**
+```bash
+make sonar-logs
+```
+
+**Stop SonarQube:**
+```bash
+make sonar-stop
+```
+
+**Restart SonarQube:**
+```bash
+make sonar-restart
+```
+
+**Access SonarQube UI:**
+- URL: http://localhost:9000
+- Default credentials: admin/admin (change on first login)
+
+**Note:** SonarQube data persists across restarts in Docker volumes.
+
 ### Docker Operations
 
 The project uses a modular Docker Compose configuration split across multiple files:
@@ -255,7 +295,7 @@ The project uses a modular Docker Compose configuration split across multiple fi
 - `docker-compose.apps.yml` - Application services (incident, notification, sftp)
 - `docker-compose.yml` - Main orchestration file that includes all groups
 
-**Build and run all services:**
+**Build and run all core services (excludes SonarQube):**
 ```bash
 docker compose up --build
 ```
@@ -268,8 +308,13 @@ docker compose -f docker-compose.infrastructure.yml up -d
 # Infrastructure + directory services
 docker compose -f docker-compose.infrastructure.yml -f docker-compose.directory.yml up -d
 
-# All services (same as using docker-compose.yml)
+# All core services (same as using docker-compose.yml)
 docker compose up -d
+```
+
+**Run SonarQube separately:**
+```bash
+make sonar-start
 ```
 
 **Run specific service:**
