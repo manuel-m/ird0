@@ -15,6 +15,7 @@ This is an insurance platform microservices architecture built with Spring Boot 
 - Java 21
 - Maven 3.9+
 - Docker and Docker Compose
+- curl
 
 **Run all services:**
 ```bash
