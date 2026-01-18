@@ -1,16 +1,23 @@
 include .env
 export
 
+# Export UID/GID for container user mapping (bind mount permissions)
+export UID := $(shell id -u)
+export GID := $(shell id -g)
+
 CORE_SERVICES := vault postgres
 SONAR_COMPOSE_FILE := deploy/docker-compose.sonar.yml
 
-.PHONY: all restart sonar sonar-start sonar-stop sonar-status sonar-logs sonar-restart reinit issues
+.PHONY: all restart sonar sonar-start sonar-stop sonar-status sonar-logs sonar-restart reinit issues setup-dirs
 
 all: restart
 
-restart: stop build start-core vault-init start-rest
+restart: stop build setup-dirs start-core vault-init start-rest
 
-reinit: stop-rm-volumes build start-core vault-init start-rest
+reinit: stop-rm-volumes build setup-dirs start-core vault-init start-rest
+
+setup-dirs:
+	@mkdir -p data/sftp-metadata data/sftp-errors data/sftp-failed temp/sftp-downloads
 
 stop-rm-volumes:
 	docker compose -p $(PROJECT_NAME) down -v --remove-orphans

@@ -17,6 +17,7 @@ import com.ird0.directory.mapper.DirectoryEntryMapper;
 import com.ird0.directory.model.DirectoryEntry;
 import com.ird0.directory.service.CsvImportService;
 import com.ird0.directory.service.DirectoryEntryService;
+import com.ird0.directory.service.ImportAuditService;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +42,8 @@ class DirectoryEntryControllerTest {
   @MockBean private DirectoryEntryMapper mapper;
 
   @MockBean private CsvImportService csvImportService;
+
+  @MockBean private ImportAuditService auditService;
 
   private DirectoryEntry testEntity;
   private DirectoryEntryDTO testDto;

@@ -11,8 +11,11 @@ services:
         APP_YML: policyholders.yml
     image: directory-policyholders
     restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
     ports:
       - "${POLICYHOLDERS_HOST_PORT}:${SERVICE_INTERNAL_PORT}"
+    volumes:
+      - ../data:/app/data
     deploy:
       resources:
         limits:

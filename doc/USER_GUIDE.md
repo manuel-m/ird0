@@ -837,7 +837,8 @@ done
 
 ### What to Back Up
 
-1. **PostgreSQL databases** (critical) - All application data
+1. **PostgreSQL databases** (crit
+2. ical) - All application data
 2. **SFTP metadata** (`./data/sftp-metadata/`) - Import timestamps
 3. **Configuration files** (in Git, but verify) - Service configuration
 4. **SSH keys** (`./keys/`, secure storage!) - Authentication credentials

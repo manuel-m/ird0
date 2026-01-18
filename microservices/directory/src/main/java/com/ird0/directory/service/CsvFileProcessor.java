@@ -1,6 +1,7 @@
 package com.ird0.directory.service;
 
 import com.ird0.directory.config.SftpImportProperties;
+import com.ird0.directory.dto.AuditRecord;
 import com.ird0.directory.dto.ImportResult;
 import com.ird0.directory.exception.CsvProcessingException;
 import java.io.File;
@@ -27,6 +28,7 @@ public class CsvFileProcessor {
   private final MetadataStore metadataStore;
   private final SftpImportProperties properties;
   private final ImportErrorHandler errorHandler;
+  private final ImportAuditService auditService;
 
   public void processFile(File csvFile) {
     String filename = csvFile.getName();
@@ -54,6 +56,8 @@ public class CsvFileProcessor {
       log.info("File '{}' not seen before, will process", filename);
     }
 
+    String checksum = auditService.calculateChecksum(csvFile);
+
     try (InputStream inputStream = new FileInputStream(csvFile)) {
       ImportResult result = csvImportService.importFromCsvWithBatching(inputStream);
 
@@ -71,10 +75,14 @@ public class CsvFileProcessor {
       if (properties.getRetry().isEnabled()) {
         errorHandler.clearRetryCount(filename);
       }
+
+      auditService.writeAuditAsync(
+          AuditRecord.success(filename, AuditRecord.ImportType.SCHEDULED, result, checksum));
+
       deleteFile(csvFile);
 
     } catch (IOException | RuntimeException e) {
-      handleImportError(csvFile, filename, e);
+      handleImportError(csvFile, filename, checksum, e);
     }
   }
 
@@ -89,9 +97,12 @@ public class CsvFileProcessor {
     }
   }
 
-  private void handleImportError(File csvFile, String filename, Exception e) {
+  private void handleImportError(File csvFile, String filename, String checksum, Exception e) {
     if (!properties.getRetry().isEnabled() || !properties.getErrorHandling().isEnabled()) {
       log.error("Failed to process file {}: {}", filename, e.getMessage(), e);
+      auditService.writeAuditAsync(
+          AuditRecord.error(
+              filename, AuditRecord.ImportType.SCHEDULED, e.getMessage(), null, checksum));
       deleteFile(csvFile);
       throw new CsvProcessingException("CSV processing failed", e);
     }
@@ -102,6 +113,9 @@ public class CsvFileProcessor {
       try {
         File dlqFile = errorHandler.moveToDeadLetterQueue(csvFile);
         errorHandler.storeLastError(filename, e.getMessage());
+        auditService.writeAuditAsync(
+            AuditRecord.failed(
+                filename, AuditRecord.ImportType.SCHEDULED, e.getMessage(), checksum));
         log.error(
             "Import failed after {} retries for file {}, moved to dead letter queue: {}",
             retryCount,
@@ -118,6 +132,9 @@ public class CsvFileProcessor {
         errorHandler.storeLastError(filename, e.getMessage());
         File errorFile = errorHandler.moveToErrorDirectory(csvFile);
         long retryDelay = errorHandler.calculateRetryDelay(retryCount + 1);
+        auditService.writeAuditAsync(
+            AuditRecord.error(
+                filename, AuditRecord.ImportType.SCHEDULED, e.getMessage(), null, checksum));
         log.warn(
             "Import failed for file {}, attempt {}/{}. Will retry. Moved to error directory: {}. Next retry in {}ms",
             filename,

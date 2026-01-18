@@ -1,14 +1,20 @@
 package com.ird0.directory.controller;
 
+import com.ird0.directory.dto.AuditRecord;
 import com.ird0.directory.dto.DirectoryEntryDTO;
 import com.ird0.directory.dto.ImportResult;
 import com.ird0.directory.mapper.DirectoryEntryMapper;
 import com.ird0.directory.model.DirectoryEntry;
 import com.ird0.directory.service.CsvImportService;
 import com.ird0.directory.service.DirectoryEntryService;
+import com.ird0.directory.service.ImportAuditService;
 import jakarta.validation.Valid;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +41,7 @@ public class DirectoryEntryController {
   private final DirectoryEntryService service;
   private final DirectoryEntryMapper mapper;
   private final CsvImportService csvImportService;
+  private final ImportAuditService auditService;
 
   @GetMapping
   public List<DirectoryEntryDTO> getAll() {
@@ -81,12 +88,32 @@ public class DirectoryEntryController {
       return ResponseEntity.badRequest().build();
     }
 
-    try (InputStream inputStream = file.getInputStream()) {
-      ImportResult result = csvImportService.importFromCsvWithBatching(inputStream);
-      return ResponseEntity.ok(result);
+    try {
+      byte[] fileBytes = file.getBytes();
+      String checksum = calculateChecksum(fileBytes);
+
+      try (InputStream inputStream = new ByteArrayInputStream(fileBytes)) {
+        ImportResult result = csvImportService.importFromCsvWithBatching(inputStream);
+        auditService.writeAuditAsync(
+            AuditRecord.success(filename, AuditRecord.ImportType.API, result, checksum));
+        return ResponseEntity.ok(result);
+      }
     } catch (IOException e) {
       log.error("Failed to process uploaded CSV: {}", e.getMessage());
+      auditService.writeAuditAsync(
+          AuditRecord.error(filename, AuditRecord.ImportType.API, e.getMessage(), null, null));
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
+  private String calculateChecksum(byte[] data) {
+    try {
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      byte[] hash = digest.digest(data);
+      return HexFormat.of().formatHex(hash);
+    } catch (NoSuchAlgorithmException e) {
+      log.warn("Failed to calculate checksum: {}", e.getMessage());
+      return null;
     }
   }
 }

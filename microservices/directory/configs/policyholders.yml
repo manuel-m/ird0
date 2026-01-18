@@ -32,6 +32,11 @@ directory:
       initial-delay: 5000
       backoff-multiplier: 1.5
       max-delay: 300000
+    audit:
+      enabled: true
+      include-checksum: true
+      pretty-print: false
+      async-enabled: true
 
 # Vault SSH CA configuration
 vault:

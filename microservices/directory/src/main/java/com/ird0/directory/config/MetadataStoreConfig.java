@@ -1,5 +1,7 @@
 package com.ird0.directory.config;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,7 +25,10 @@ public class MetadataStoreConfig {
   private final SftpImportProperties properties;
 
   @Bean
-  public MetadataStore metadataStore() {
+  public MetadataStore metadataStore() throws Exception {
+    Path metadataDir = Path.of(properties.getMetadataDirectory());
+    Files.createDirectories(metadataDir);
+
     PropertiesPersistingMetadataStore store = new PropertiesPersistingMetadataStore();
     store.setBaseDirectory(properties.getMetadataDirectory());
     log.info("MetadataStore configured (persistent): {}", properties.getMetadataDirectory());

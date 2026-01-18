@@ -32,8 +32,6 @@ FROM eclipse-temurin:21-jdk-alpine
 ARG APP_YML=application.yml
 WORKDIR /app
 
-# Create a non-root user and group
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copy the executable jar from the build stage
 COPY --from=build /app/microservices/directory/target/directory-1.0.0-exec.jar app.jar
@@ -44,17 +42,17 @@ COPY microservices/directory/configs/application.yml application.yml
 # Copy instance-specific configuration
 COPY microservices/directory/configs/${APP_YML} instance.yml
 
-# Create directories needed by the application and set ownership
+# Copy entrypoint script
+COPY microservices/directory/docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Create directories needed by the application
 RUN mkdir -p /app/temp/sftp-downloads \
              /app/data/sftp-metadata \
              /app/data/sftp-errors \
-             /app/data/sftp-failed && \
-    chown -R appuser:appgroup /app
-
-# Switch to non-root user
-USER appuser
+             /app/data/sftp-failed
 
 # Document the port the service listens on
 EXPOSE 8081
 
-ENTRYPOINT ["java", "-jar", "app.jar", "--spring.config.location=file:/app/application.yml,file:/app/instance.yml"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

@@ -71,4 +71,13 @@ public class SftpImportProperties {
 
   private ErrorHandling errorHandling = new ErrorHandling();
   private Retry retry = new Retry();
+  private Audit audit = new Audit();
+
+  @Data
+  public static class Audit {
+    private boolean enabled = true;
+    private boolean includeChecksum = true;
+    private boolean prettyPrint = false;
+    private boolean asyncEnabled = true;
+  }
 }
