@@ -1,0 +1,29 @@
+# Dependencies
+/node_modules
+
+# Build outputs
+/dist
+/.angular
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+.env.local
+.env.*.local
+
+# Test outputs
+/coverage
+/test-results
+/playwright-report
+/playwright/.cache
+
+# Misc
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

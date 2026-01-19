@@ -1,0 +1,11 @@
+server:
+  port: ${SERVER_PORT:8090}
+
+portal:
+  api:
+    base-path: /api/portal/v1
+  services:
+    incident-url: ${INCIDENT_SERVICE_URL:http://localhost:8085}
+    policyholders-url: ${POLICYHOLDERS_SERVICE_URL:http://localhost:8081}
+    experts-url: ${EXPERTS_SERVICE_URL:http://localhost:8082}
+    insurers-url: ${INSURERS_SERVICE_URL:http://localhost:8084}

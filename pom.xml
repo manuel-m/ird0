@@ -15,6 +15,7 @@
         <module>microservices/sftp-server</module>
         <module>microservices/incident</module>
         <module>microservices/notification</module>
+        <module>microservices/portal-bff</module>
         <module>utilities/directory-data-generator</module>
     </modules>
 

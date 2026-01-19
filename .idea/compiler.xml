@@ -50,6 +50,16 @@
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
         </processorPath>
         <module name="data-generator" />
+        <module name="directory-data-generator" />
+      </profile>
+      <profile name="Annotation profile for portal-bff" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.38/lombok-1.18.38.jar" />
+        </processorPath>
+        <module name="portal-bff" />
       </profile>
     </annotationProcessing>
   </component>
@@ -58,6 +68,7 @@
       <module name="directory" options="-parameters" />
       <module name="incident" options="-parameters" />
       <module name="notification" options="-parameters" />
+      <module name="portal-bff" options="-parameters" />
     </option>
   </component>
 </project>

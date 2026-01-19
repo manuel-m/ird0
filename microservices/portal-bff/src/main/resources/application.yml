@@ -1,0 +1,42 @@
+# Default application configuration for IDE development
+# Production config uses configs/ directory
+
+server:
+  port: 8090
+
+spring:
+  application:
+    name: portal-bff
+
+portal:
+  api:
+    base-path: /api/portal/v1
+  services:
+    incident-url: http://localhost:8085
+    policyholders-url: http://localhost:8081
+    experts-url: http://localhost:8082
+    insurers-url: http://localhost:8084
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.ird0.portal: DEBUG
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      incidentService:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+      directoryService:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
