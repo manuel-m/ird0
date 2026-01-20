@@ -189,12 +189,12 @@ Each microservice has its own detailed CLAUDE.md file:
 
 Build the entire project:
 ```bash
-mvn clean package
+./mvnw clean package
 ```
 
 Build without tests:
 ```bash
-mvn clean package -DskipTests
+./mvnw clean package -DskipTests
 ```
 
 ### Code Formatting with Spotless
@@ -203,12 +203,12 @@ The project uses Spotless with Google Java Format for consistent code formatting
 
 **Check if code is properly formatted (from root):**
 ```bash
-mvn spotless:check
+./mvnw spotless:check
 ```
 
 **Automatically format all code (from root):**
 ```bash
-mvn spotless:apply
+./mvnw spotless:apply
 ```
 
 **Configuration (managed in parent POM):**
@@ -220,8 +220,8 @@ mvn spotless:apply
   - End files with newline
 
 **Best practices:**
-- Run `mvn spotless:apply` before committing code
-- CI/CD pipelines should run `mvn spotless:check` to enforce formatting
+- Run `./mvnw spotless:apply` before committing code
+- CI/CD pipelines should run `./mvnw spotless:check` to enforce formatting
 - Configuration is centralized in the root pom.xml, inherited by all modules
 
 ### Docker Operations
@@ -252,7 +252,7 @@ All services use multi-stage Dockerfiles with optimized layer caching:
 
 **Build Stage:**
 1. **Copy POM files only** - Creates a cacheable layer for dependency metadata
-2. **Download dependencies** - `mvn dependency:resolve dependency:resolve-plugins`
+2. **Download dependencies** - `./mvnw dependency:resolve dependency:resolve-plugins`
    - This layer is cached and reused across all service builds
    - Only invalidates when POM files change, not when source code changes
 3. **Copy source code** - Changes here don't invalidate the dependency cache

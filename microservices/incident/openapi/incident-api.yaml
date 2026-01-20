@@ -1,0 +1,627 @@
+openapi: 3.1.0
+info:
+  title: Incident Service API
+  description: REST API for managing insurance incidents and claims
+  contact:
+    name: IRD0 Development Team
+  version: 1.0.0
+servers:
+- url: http://localhost:8085
+  description: API Server
+tags:
+- name: Incidents
+  description: Incident lifecycle management
+paths:
+  /api/v1/incidents/{id}/status:
+    put:
+      tags:
+      - Incidents
+      summary: Update incident status
+      operationId: updateIncidentStatus
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: updatedBy
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusUpdateRequest"
+        required: true
+      responses:
+        "200":
+          description: Status updated
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentResponse"
+  /api/v1/incidents:
+    get:
+      tags:
+      - Incidents
+      summary: List incidents with filters
+      operationId: listIncidents
+      parameters:
+      - name: policyholderId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: insurerId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - DECLARED
+          - UNDER_REVIEW
+          - QUALIFIED
+          - ABANDONED
+          - IN_PROGRESS
+          - CLOSED
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: fromDate
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: toDate
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: pageable
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/Pageable"
+      responses:
+        "200":
+          description: Paginated list of incidents
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageIncidentSummaryResponse"
+    post:
+      tags:
+      - Incidents
+      summary: Create new incident
+      operationId: createIncident
+      parameters:
+      - name: createdBy
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIncidentRequest"
+        required: true
+      responses:
+        "201":
+          description: Incident created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentResponse"
+  /api/v1/incidents/{id}/expert:
+    post:
+      tags:
+      - Incidents
+      summary: Assign expert to incident
+      operationId: assignIncidentExpert
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: assignedBy
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpertAssignmentRequest"
+        required: true
+      responses:
+        "200":
+          description: Expert assigned
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentResponse"
+  /api/v1/incidents/{id}/comments:
+    get:
+      tags:
+      - Incidents
+      summary: Get incident comments
+      operationId: getIncidentComments
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: List of comments
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommentResponse"
+    post:
+      tags:
+      - Incidents
+      summary: Add comment to incident
+      operationId: addIncidentComment
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentRequest"
+        required: true
+      responses:
+        "200":
+          description: Comment added
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentResponse"
+  /api/v1/incidents/{id}:
+    get:
+      tags:
+      - Incidents
+      summary: Get incident by ID
+      operationId: getIncidentById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Incident found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentResponse"
+        "404":
+          description: Incident not found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentResponse"
+    delete:
+      tags:
+      - Incidents
+      summary: Delete incident
+      operationId: deleteIncident
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Incident deleted
+        "404":
+          description: Incident not found
+  /api/v1/incidents/{id}/history:
+    get:
+      tags:
+      - Incidents
+      summary: Get incident event history
+      operationId: getIncidentHistory
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Event history
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IncidentEventResponse"
+  /api/v1/incidents/reference/{referenceNumber}:
+    get:
+      tags:
+      - Incidents
+      summary: Get incident by reference number
+      operationId: getIncidentByReference
+      parameters:
+      - name: referenceNumber
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Incident found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentResponse"
+        "404":
+          description: Incident not found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentResponse"
+components:
+  schemas:
+    StatusUpdateRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - DECLARED
+          - UNDER_REVIEW
+          - QUALIFIED
+          - ABANDONED
+          - IN_PROGRESS
+          - CLOSED
+        reason:
+          type: string
+        qualificationDetails:
+          type: object
+          additionalProperties:
+            type: object
+      required:
+      - status
+    CommentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        authorType:
+          type: string
+          enum:
+          - POLICYHOLDER
+          - INSURER
+          - EXPERT
+          - SYSTEM
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ExpertAssignmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        expertId:
+          type: string
+          format: uuid
+        assignedAt:
+          type: string
+          format: date-time
+        scheduledDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - PENDING
+          - ACCEPTED
+          - COMPLETED
+          - CANCELLED
+        notes:
+          type: string
+    IncidentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        referenceNumber:
+          type: string
+        policyholderId:
+          type: string
+          format: uuid
+        insurerId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - DECLARED
+          - UNDER_REVIEW
+          - QUALIFIED
+          - ABANDONED
+          - IN_PROGRESS
+          - CLOSED
+        type:
+          type: string
+        description:
+          type: string
+        incidentDate:
+          type: string
+          format: date-time
+        location:
+          $ref: "#/components/schemas/LocationDTO"
+        estimatedDamage:
+          type: number
+        currency:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        expertAssignments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExpertAssignmentResponse"
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommentResponse"
+    LocationDTO:
+      type: object
+      properties:
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+    CreateIncidentRequest:
+      type: object
+      properties:
+        policyholderId:
+          type: string
+          format: uuid
+        insurerId:
+          type: string
+          format: uuid
+        type:
+          type: string
+        description:
+          type: string
+        incidentDate:
+          type: string
+          format: date-time
+        location:
+          $ref: "#/components/schemas/LocationDTO"
+        estimatedDamage:
+          type: number
+        currency:
+          type: string
+      required:
+      - incidentDate
+      - insurerId
+      - policyholderId
+      - type
+    ExpertAssignmentRequest:
+      type: object
+      properties:
+        expertId:
+          type: string
+          format: uuid
+        assignmentReason:
+          type: string
+        scheduledDate:
+          type: string
+          format: date-time
+        notes:
+          type: string
+      required:
+      - expertId
+    CommentRequest:
+      type: object
+      properties:
+        authorId:
+          type: string
+          format: uuid
+        authorType:
+          type: string
+          enum:
+          - POLICYHOLDER
+          - INSURER
+          - EXPERT
+          - SYSTEM
+        content:
+          type: string
+      required:
+      - authorId
+      - authorType
+      - content
+    Pageable:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+          minimum: 0
+        size:
+          type: integer
+          format: int32
+          minimum: 1
+        sort:
+          type: array
+          items:
+            type: string
+    IncidentSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        referenceNumber:
+          type: string
+        policyholderId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - DECLARED
+          - UNDER_REVIEW
+          - QUALIFIED
+          - ABANDONED
+          - IN_PROGRESS
+          - CLOSED
+        type:
+          type: string
+        incidentDate:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    PageIncidentSummaryResponse:
+      type: object
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        numberOfElements:
+          type: integer
+          format: int32
+        pageable:
+          $ref: "#/components/schemas/PageableObject"
+        size:
+          type: integer
+          format: int32
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncidentSummaryResponse"
+        number:
+          type: integer
+          format: int32
+        sort:
+          $ref: "#/components/schemas/SortObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
+        empty:
+          type: boolean
+    PageableObject:
+      type: object
+      properties:
+        unpaged:
+          type: boolean
+        pageNumber:
+          type: integer
+          format: int32
+        paged:
+          type: boolean
+        pageSize:
+          type: integer
+          format: int32
+        offset:
+          type: integer
+          format: int64
+        sort:
+          $ref: "#/components/schemas/SortObject"
+    SortObject:
+      type: object
+      properties:
+        unsorted:
+          type: boolean
+        sorted:
+          type: boolean
+        empty:
+          type: boolean
+    IncidentEventResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        previousStatus:
+          type: string
+          enum:
+          - DECLARED
+          - UNDER_REVIEW
+          - QUALIFIED
+          - ABANDONED
+          - IN_PROGRESS
+          - CLOSED
+        newStatus:
+          type: string
+          enum:
+          - DECLARED
+          - UNDER_REVIEW
+          - QUALIFIED
+          - ABANDONED
+          - IN_PROGRESS
+          - CLOSED
+        payload:
+          type: object
+          additionalProperties:
+            type: object
+        triggeredBy:
+          type: string
+          format: uuid
+        occurredAt:
+          type: string
+          format: date-time

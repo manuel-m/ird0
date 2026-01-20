@@ -11,7 +11,7 @@
     "lint": "ng lint",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
-    "generate-api": "openapi-generator-cli generate -i ../portal-api/openapi/portal-api.yaml -g typescript-angular -o src/app/generated/api --additional-properties=ngVersion=20,providedInRoot=true,fileNaming=kebab-case"
+    "generate-api": "openapi-generator-cli generate -i ../microservices/portal-bff/openapi/portal-api.yaml -g typescript-angular -o src/app/generated/api --additional-properties=ngVersion=20,providedInRoot=true,fileNaming=kebab-case"
   },
   "dependencies": {
     "@angular/animations": "^20.0.0",

@@ -1,0 +1,197 @@
+openapi: 3.1.0
+info:
+  title: Directory Service API
+  description: "REST API for managing directory entries (policyholders, experts, providers,\
+    \ insurers)"
+  contact:
+    name: IRD0 Development Team
+  version: 1.0.0
+servers:
+- url: http://localhost:8081
+  description: API Server
+tags:
+- name: Directory Entries
+  description: CRUD operations for directory entries
+paths:
+  /api/policyholders/{id}:
+    get:
+      tags:
+      - Directory Entries
+      summary: Get entry by ID
+      operationId: getEntryById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Entry not found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DirectoryEntryDTO"
+        "200":
+          description: Entry found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DirectoryEntryDTO"
+    put:
+      tags:
+      - Directory Entries
+      summary: Update existing entry
+      operationId: updateEntry
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DirectoryEntryDTO"
+        required: true
+      responses:
+        "200":
+          description: Entry updated
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DirectoryEntryDTO"
+        "404":
+          description: Entry not found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DirectoryEntryDTO"
+    delete:
+      tags:
+      - Directory Entries
+      summary: Delete entry by ID
+      operationId: deleteEntry
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Entry deleted
+        "404":
+          description: Entry not found
+  /api/policyholders:
+    get:
+      tags:
+      - Directory Entries
+      summary: List all directory entries
+      operationId: getAllEntries
+      responses:
+        "200":
+          description: List of entries
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DirectoryEntryDTO"
+    post:
+      tags:
+      - Directory Entries
+      summary: Create new entry
+      operationId: createEntry
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DirectoryEntryDTO"
+        required: true
+      responses:
+        "200":
+          description: Entry created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DirectoryEntryDTO"
+  /api/policyholders/import:
+    post:
+      tags:
+      - Directory Entries
+      summary: Import entries from CSV
+      operationId: importCsv
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+              - file
+      responses:
+        "400":
+          description: Invalid file
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+        "200":
+          description: Import completed
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+components:
+  schemas:
+    DirectoryEntryDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        additionalInfo:
+          type: string
+        webhookUrl:
+          type: string
+      required:
+      - email
+      - name
+      - phone
+      - type
+    ImportResult:
+      type: object
+      properties:
+        totalRows:
+          type: integer
+          format: int32
+        newRows:
+          type: integer
+          format: int32
+        updatedRows:
+          type: integer
+          format: int32
+        unchangedRows:
+          type: integer
+          format: int32
+        failedRows:
+          type: integer
+          format: int32

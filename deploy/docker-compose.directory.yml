@@ -38,6 +38,7 @@ services:
       start_period: 40s
     environment:
       - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - OPENAPI_SERVER_URL=http://localhost:${POLICYHOLDERS_HOST_PORT}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -87,6 +88,7 @@ services:
       start_period: 40s
     environment:
       - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - OPENAPI_SERVER_URL=http://localhost:${EXPERTS_HOST_PORT}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -126,6 +128,7 @@ services:
       start_period: 40s
     environment:
       - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - OPENAPI_SERVER_URL=http://localhost:${PROVIDERS_HOST_PORT}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -165,6 +168,7 @@ services:
       start_period: 40s
     environment:
       - SERVER_PORT=${SERVICE_INTERNAL_PORT}
+      - OPENAPI_SERVER_URL=http://localhost:${INSURERS_HOST_PORT}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}

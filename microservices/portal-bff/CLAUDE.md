@@ -119,7 +119,7 @@ portal:
 **Run the service:**
 ```bash
 cd microservices/portal-bff
-mvn spring-boot:run \
+./mvnw spring-boot:run \
   -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/portal-bff.yml"
 ```
 

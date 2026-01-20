@@ -8,6 +8,9 @@ import com.ird0.directory.model.DirectoryEntry;
 import com.ird0.directory.service.CsvImportService;
 import com.ird0.directory.service.DirectoryEntryService;
 import com.ird0.directory.service.ImportAuditService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -36,6 +39,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("${directory.api.base-path:/api/entries}")
 @RequiredArgsConstructor
+@Tag(name = "Directory Entries", description = "CRUD operations for directory entries")
 public class DirectoryEntryController {
 
   private final DirectoryEntryService service;
@@ -43,18 +47,25 @@ public class DirectoryEntryController {
   private final CsvImportService csvImportService;
   private final ImportAuditService auditService;
 
+  @Operation(summary = "List all directory entries", operationId = "getAllEntries")
+  @ApiResponse(responseCode = "200", description = "List of entries")
   @GetMapping
   public List<DirectoryEntryDTO> getAll() {
     List<DirectoryEntry> entities = service.getAll();
     return mapper.toDTOList(entities);
   }
 
+  @Operation(summary = "Get entry by ID", operationId = "getEntryById")
+  @ApiResponse(responseCode = "200", description = "Entry found")
+  @ApiResponse(responseCode = "404", description = "Entry not found")
   @GetMapping("/{id}")
   public DirectoryEntryDTO getOne(@PathVariable UUID id) {
     DirectoryEntry entity = service.getById(id);
     return mapper.toDTO(entity);
   }
 
+  @Operation(summary = "Create new entry", operationId = "createEntry")
+  @ApiResponse(responseCode = "200", description = "Entry created")
   @PostMapping
   public DirectoryEntryDTO create(@Valid @RequestBody DirectoryEntryDTO dto) {
     DirectoryEntry entity = mapper.toEntity(dto);
@@ -62,6 +73,9 @@ public class DirectoryEntryController {
     return mapper.toDTO(saved);
   }
 
+  @Operation(summary = "Update existing entry", operationId = "updateEntry")
+  @ApiResponse(responseCode = "200", description = "Entry updated")
+  @ApiResponse(responseCode = "404", description = "Entry not found")
   @PutMapping("/{id}")
   public DirectoryEntryDTO update(
       @PathVariable UUID id, @Valid @RequestBody DirectoryEntryDTO dto) {
@@ -71,11 +85,17 @@ public class DirectoryEntryController {
     return mapper.toDTO(updated);
   }
 
+  @Operation(summary = "Delete entry by ID", operationId = "deleteEntry")
+  @ApiResponse(responseCode = "200", description = "Entry deleted")
+  @ApiResponse(responseCode = "404", description = "Entry not found")
   @DeleteMapping("/{id}")
   public void delete(@PathVariable UUID id) {
     service.delete(id);
   }
 
+  @Operation(summary = "Import entries from CSV", operationId = "importCsv")
+  @ApiResponse(responseCode = "200", description = "Import completed")
+  @ApiResponse(responseCode = "400", description = "Invalid file")
   @PostMapping("/import")
   public ResponseEntity<ImportResult> uploadCsv(@RequestParam("file") MultipartFile file) {
 

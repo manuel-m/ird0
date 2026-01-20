@@ -13,6 +13,9 @@ import com.ird0.incident.model.Incident;
 import com.ird0.incident.model.IncidentStatus;
 import com.ird0.incident.repository.IncidentEventRepository;
 import com.ird0.incident.service.IncidentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.List;
@@ -38,12 +41,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("${incident.api.base-path:/api/v1/incidents}")
 @RequiredArgsConstructor
+@Tag(name = "Incidents", description = "Incident lifecycle management")
 public class IncidentController {
 
   private final IncidentService incidentService;
   private final IncidentEventRepository eventRepository;
   private final IncidentMapper incidentMapper;
 
+  @Operation(summary = "Create new incident", operationId = "createIncident")
+  @ApiResponse(responseCode = "201", description = "Incident created")
   @PostMapping
   public ResponseEntity<IncidentResponse> createIncident(
       @Valid @RequestBody CreateIncidentRequest request,
@@ -54,12 +60,18 @@ public class IncidentController {
     return ResponseEntity.status(HttpStatus.CREATED).body(incidentMapper.toResponse(incident));
   }
 
+  @Operation(summary = "Get incident by ID", operationId = "getIncidentById")
+  @ApiResponse(responseCode = "200", description = "Incident found")
+  @ApiResponse(responseCode = "404", description = "Incident not found")
   @GetMapping("/{id}")
   public ResponseEntity<IncidentResponse> getIncident(@PathVariable UUID id) {
     Incident incident = incidentService.getById(id);
     return ResponseEntity.ok(incidentMapper.toResponse(incident));
   }
 
+  @Operation(summary = "Get incident by reference number", operationId = "getIncidentByReference")
+  @ApiResponse(responseCode = "200", description = "Incident found")
+  @ApiResponse(responseCode = "404", description = "Incident not found")
   @GetMapping("/reference/{referenceNumber}")
   public ResponseEntity<IncidentResponse> getIncidentByReference(
       @PathVariable String referenceNumber) {
@@ -67,6 +79,8 @@ public class IncidentController {
     return ResponseEntity.ok(incidentMapper.toResponse(incident));
   }
 
+  @Operation(summary = "List incidents with filters", operationId = "listIncidents")
+  @ApiResponse(responseCode = "200", description = "Paginated list of incidents")
   @GetMapping
   public ResponseEntity<Page<IncidentSummaryResponse>> listIncidents(
       @RequestParam(required = false) UUID policyholderId,
@@ -83,6 +97,8 @@ public class IncidentController {
     return ResponseEntity.ok(response);
   }
 
+  @Operation(summary = "Update incident status", operationId = "updateIncidentStatus")
+  @ApiResponse(responseCode = "200", description = "Status updated")
   @PutMapping("/{id}/status")
   public ResponseEntity<IncidentResponse> updateStatus(
       @PathVariable UUID id,
@@ -94,6 +110,8 @@ public class IncidentController {
     return ResponseEntity.ok(incidentMapper.toResponse(incident));
   }
 
+  @Operation(summary = "Assign expert to incident", operationId = "assignIncidentExpert")
+  @ApiResponse(responseCode = "200", description = "Expert assigned")
   @PostMapping("/{id}/expert")
   public ResponseEntity<IncidentResponse> assignExpert(
       @PathVariable UUID id,
@@ -105,6 +123,8 @@ public class IncidentController {
     return ResponseEntity.ok(incidentMapper.toResponse(incident));
   }
 
+  @Operation(summary = "Add comment to incident", operationId = "addIncidentComment")
+  @ApiResponse(responseCode = "200", description = "Comment added")
   @PostMapping("/{id}/comments")
   public ResponseEntity<IncidentResponse> addComment(
       @PathVariable UUID id, @Valid @RequestBody CommentRequest request) {
@@ -114,6 +134,8 @@ public class IncidentController {
     return ResponseEntity.ok(incidentMapper.toResponse(incident));
   }
 
+  @Operation(summary = "Get incident comments", operationId = "getIncidentComments")
+  @ApiResponse(responseCode = "200", description = "List of comments")
   @GetMapping("/{id}/comments")
   public ResponseEntity<List<CommentResponse>> getComments(@PathVariable UUID id) {
     Incident incident = incidentService.getById(id);
@@ -121,6 +143,8 @@ public class IncidentController {
     return ResponseEntity.ok(comments);
   }
 
+  @Operation(summary = "Get incident event history", operationId = "getIncidentHistory")
+  @ApiResponse(responseCode = "200", description = "Event history")
   @GetMapping("/{id}/history")
   public ResponseEntity<List<IncidentEventResponse>> getHistory(@PathVariable UUID id) {
     List<IncidentEventResponse> events =
@@ -129,6 +153,9 @@ public class IncidentController {
     return ResponseEntity.ok(events);
   }
 
+  @Operation(summary = "Delete incident", operationId = "deleteIncident")
+  @ApiResponse(responseCode = "204", description = "Incident deleted")
+  @ApiResponse(responseCode = "404", description = "Incident not found")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> deleteIncident(@PathVariable UUID id) {
     incidentService.deleteIncident(id);
