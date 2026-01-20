@@ -176,12 +176,12 @@ See `keys/authorized_keys.example` for a documented example file.
 
 **Build SFTP server only:**
 ```bash
-mvn -f microservices/sftp-server/pom.xml clean package
+./mvnw -f microservices/sftp-server/pom.xml clean package
 ```
 
 **Build from project root:**
 ```bash
-mvn clean package
+./mvnw clean package
 ```
 
 **Output:**
@@ -197,7 +197,7 @@ Environment variables are required for local development because the application
 SFTP_DATA_DIR=./data \
 SFTP_HOST_KEY_PATH=./keys/hostkey.pem \
 SFTP_AUTHORIZED_KEYS_PATH=./keys/authorized_keys \
-mvn -f microservices/sftp-server/pom.xml spring-boot:run \
+./mvnw -f microservices/sftp-server/pom.xml spring-boot:run \
   -Dspring-boot.run.arguments="--spring.config.location=file:microservices/sftp-server/configs/application.yml,file:microservices/sftp-server/configs/sftp.yml"
 ```
 
@@ -208,7 +208,7 @@ cd microservices/sftp-server
 SFTP_DATA_DIR=../../data \
 SFTP_HOST_KEY_PATH=../../keys/hostkey.pem \
 SFTP_AUTHORIZED_KEYS_PATH=../../keys/authorized_keys \
-mvn spring-boot:run \
+./mvnw spring-boot:run \
   -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/sftp.yml"
 ```
 

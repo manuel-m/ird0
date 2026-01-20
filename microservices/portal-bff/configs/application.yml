@@ -16,6 +16,19 @@ logging:
     com.ird0.portal: DEBUG
     org.springframework.web: INFO
 
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    urls-primary-name: Portal BFF
+  packages-to-scan: com.ird0.portal.controller
+  paths-to-match: /api/portal/v1/**
+
 resilience4j:
   circuitbreaker:
     instances:

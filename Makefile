@@ -5,16 +5,62 @@ export
 export UID := $(shell id -u)
 export GID := $(shell id -g)
 
+APP_SERVICES := \
+policyholders-svc \
+experts-svc \
+incident-svc \
+notification-svc \
+providers-svc \
+insurers-svc \
+portal-bff
+
 CORE_SERVICES := vault postgres
 SONAR_COMPOSE_FILE := deploy/docker-compose.sonar.yml
 
-.PHONY: all restart sonar sonar-start sonar-stop sonar-status sonar-logs sonar-restart reinit issues setup-dirs
+.PHONY: \
+all \
+apps-stop \
+apps-build \
+apps-start \
+apps-restart \
+restart \
+sonar \
+sonar-start \
+sonar-stop \
+sonar-status \
+sonar-logs \
+sonar-restart \
+reinit issues \
+setup-dirs \
+start-db \
+java-verify \
+test-data-build \
+test-data-inject
 
 all: restart
 
-restart: stop build setup-dirs start-core vault-init start-rest
+restart: stop docker-build setup-dirs core-start vault-init start-rest
 
-reinit: stop-rm-volumes build setup-dirs start-core vault-init start-rest
+reinit: stop-rm-volumes docker-build setup-dirs core-start vault-init start-rest
+
+apps-restart: apps-stop apps-build apps-start
+
+apps-start:
+	docker compose -p $(PROJECT_NAME) up -d $(APP_SERVICES)
+
+apps-build:
+	docker compose -p $(PROJECT_NAME) build $(APP_SERVICES)
+
+apps-stop:
+	docker compose -p $(PROJECT_NAME) down $(APP_SERVICES)
+
+core-start:
+	docker compose -p $(PROJECT_NAME) up -d $(CORE_SERVICES)
+	sleep 4
+
+front-dev:
+	cd portal-frontend
+	pnpm start
 
 setup-dirs:
 	@mkdir -p data/sftp-metadata data/sftp-errors data/sftp-failed temp/sftp-downloads
@@ -23,14 +69,13 @@ stop-rm-volumes:
 	docker compose -p $(PROJECT_NAME) down -v --remove-orphans
 
 stop:
-	docker compose -p $(PROJECT_NAME) down --remove-orphans
+	docker compose -p $(PROJECT_NAME) down
 
-build:
+docker-build: java-verify
 	docker compose -p $(PROJECT_NAME) build
 
-start-core:
-	docker compose -p $(PROJECT_NAME) up -d $(CORE_SERVICES)
-	sleep 4
+start-db:
+	docker compose -p $(PROJECT_NAME) up -d postgres
 
 vault-init:
 	bash scripts/vault-init.sh
@@ -38,12 +83,23 @@ vault-init:
 start-rest:
 	docker compose -p $(PROJECT_NAME) up -d
 
+java-verify:
+	./mvnw clean verify
+
+
+test-data-build:
+	./mvnw -f utilities/directory-data-generator/pom.xml clean package
+
+test-data-inject:
+	java -jar utilities/directory-data-generator/target/directory-data-generator.jar -o /tmp/policyholders.csv
+	curl -X POST http://localhost:8081/api/policyholders/import -F "file=@/tmp/policyholders.csv"
+
 
 sonar:
 	@echo "Checking if SonarQube is running..."
 	@docker compose -p $(PROJECT_NAME) -f $(SONAR_COMPOSE_FILE) ps | grep -q sonarqube || (echo "ERROR: SonarQube is not running. Start it with: make sonar-start" && exit 1)
 	@echo "Running SonarQube analysis..."
-	mvn clean verify sonar:sonar -Dsonar.host.url=http://$(SONAR_HOST):$(SONAR_PORT) -Dsonar.token=$(SONAR_TOKEN)
+	./mvnw clean java-verify sonar:sonar -Dsonar.host.url=http://$(SONAR_HOST):$(SONAR_PORT) -Dsonar.token=$(SONAR_TOKEN)
 
 issues:
 	curl -u $(SONAR_TOKEN): "http://$(SONAR_HOST):$(SONAR_PORT)/api/issues/search?componentKeys=$(SONAR_PROJECT)"

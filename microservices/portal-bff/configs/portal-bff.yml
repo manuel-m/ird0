@@ -9,3 +9,23 @@ portal:
     policyholders-url: ${POLICYHOLDERS_SERVICE_URL:http://localhost:8081}
     experts-url: ${EXPERTS_SERVICE_URL:http://localhost:8082}
     insurers-url: ${INSURERS_SERVICE_URL:http://localhost:8084}
+
+# Aggregated OpenAPI specs from all microservices
+# URLs constructed from SWAGGER_HOST and port variables (DRY principle)
+springdoc:
+  swagger-ui:
+    urls:
+      - name: Portal BFF
+        url: http://${SWAGGER_HOST:localhost}:${SWAGGER_PORTAL_BFF_PORT:7777}/v3/api-docs
+      - name: Incident Service
+        url: http://${SWAGGER_HOST:localhost}:${SWAGGER_INCIDENT_PORT:8085}/v3/api-docs
+      - name: Notification Service
+        url: http://${SWAGGER_HOST:localhost}:${SWAGGER_NOTIFICATION_PORT:8086}/v3/api-docs
+      - name: Directory - Policyholders
+        url: http://${SWAGGER_HOST:localhost}:${SWAGGER_POLICYHOLDERS_PORT:8081}/v3/api-docs
+      - name: Directory - Experts
+        url: http://${SWAGGER_HOST:localhost}:${SWAGGER_EXPERTS_PORT:8082}/v3/api-docs
+      - name: Directory - Providers
+        url: http://${SWAGGER_HOST:localhost}:${SWAGGER_PROVIDERS_PORT:8083}/v3/api-docs
+      - name: Directory - Insurers
+        url: http://${SWAGGER_HOST:localhost}:${SWAGGER_INSURERS_PORT:8084}/v3/api-docs

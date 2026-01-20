@@ -244,7 +244,7 @@ Scheduled and and imports triggered by Rest API shall both be handled
   │ └──────────────────────────────────────────┴─────────────────────────────────┘
 
 
-mvn clean install -DskipTests
+./mvnw clean install -DskipTests
 java -jar /tmp/makeit/utilities/directory-data-generator/target/directory-data-generator.jar
 curl -X POST http://localhost:8081/api/policyholders/import -F "file=@policyholders.csv" 
 

@@ -1,0 +1,194 @@
+openapi: 3.1.0
+info:
+  title: Notification Service API
+  description: REST API for webhook notifications
+  contact:
+    name: IRD0 Development Team
+  version: 1.0.0
+servers:
+- url: http://localhost:8086
+  description: API Server
+tags:
+- name: Notifications
+  description: Webhook notification management
+paths:
+  /api/v1/notifications/{id}/retry:
+    post:
+      tags:
+      - Notifications
+      summary: Retry failed notification
+      operationId: retryNotification
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Notification retried
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NotificationResponse"
+        "404":
+          description: Notification not found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NotificationResponse"
+  /api/v1/notifications/webhook:
+    post:
+      tags:
+      - Notifications
+      summary: Create webhook notification
+      operationId: createWebhookNotification
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookRequest"
+        required: true
+      responses:
+        "201":
+          description: Notification created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NotificationResponse"
+  /api/v1/notifications:
+    get:
+      tags:
+      - Notifications
+      summary: List notifications with filters
+      operationId: getNotifications
+      parameters:
+      - name: incidentId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - PENDING
+          - SENT
+          - DELIVERED
+          - FAILED
+          - CANCELLED
+      responses:
+        "200":
+          description: List of notifications
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NotificationResponse"
+  /api/v1/notifications/{id}:
+    get:
+      tags:
+      - Notifications
+      summary: Get notification by ID
+      operationId: getNotificationById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Notification not found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NotificationResponse"
+        "200":
+          description: Notification found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NotificationResponse"
+    delete:
+      tags:
+      - Notifications
+      summary: Cancel pending notification
+      operationId: cancelNotification
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Notification cancelled
+        "404":
+          description: Notification not found
+components:
+  schemas:
+    NotificationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        incidentId:
+          type: string
+          format: uuid
+        webhookUrl:
+          type: string
+        status:
+          type: string
+          enum:
+          - PENDING
+          - SENT
+          - DELIVERED
+          - FAILED
+          - CANCELLED
+        payload:
+          type: object
+          additionalProperties:
+            type: object
+        sentAt:
+          type: string
+          format: date-time
+        responseCode:
+          type: integer
+          format: int32
+        retryCount:
+          type: integer
+          format: int32
+        nextRetryAt:
+          type: string
+          format: date-time
+        failureReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    WebhookRequest:
+      type: object
+      properties:
+        webhookUrl:
+          type: string
+        payload:
+          type: object
+          additionalProperties:
+            type: object
+      required:
+      - payload
+      - webhookUrl

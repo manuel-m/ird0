@@ -100,7 +100,7 @@ spring:
 **Run the service:**
 ```bash
 cd microservices/notification
-mvn spring-boot:run \
+./mvnw spring-boot:run \
   -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/notification.yml"
 ```
 
@@ -225,12 +225,12 @@ Each notification includes the full incident details in the payload.
 
 **Run tests:**
 ```bash
-mvn -f microservices/notification/pom.xml test
+./mvnw -f microservices/notification/pom.xml test
 ```
 
 **Test coverage report:**
 ```bash
-mvn -f microservices/notification/pom.xml verify
+./mvnw -f microservices/notification/pom.xml verify
 # Report at target/site/jacoco/index.html
 ```
 

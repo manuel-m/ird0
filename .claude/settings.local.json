@@ -2,10 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(docker compose:*)",
-      "Bash(mvn spotless:apply:*)",
-      "Bash(mvn test:*)",
+      "Bash(./mvnw spotless:apply:*)",
+      "Bash(./mvnw test:*)",
       "Bash(xargs ls:*)",
-      "Bash(mvn:*)"
+      "Bash(./mvnw:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ]
   }
 }

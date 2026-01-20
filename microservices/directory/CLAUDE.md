@@ -318,12 +318,12 @@ INFO  Import completed for policyholders.csv: 105 total, 5 new, 10 updated, 90 u
 
 **Build directory microservice only:**
 ```bash
-mvn -f microservices/directory/pom.xml clean package
+./mvnw -f microservices/directory/pom.xml clean package
 ```
 
 **Build from project root:**
 ```bash
-mvn clean package
+./mvnw clean package
 ```
 
 **Output:**
@@ -339,26 +339,26 @@ Run a single instance locally for development and debugging:
 **Policyholders service (port 8081):**
 ```bash
 cd microservices/directory
-mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/policyholders.yml"
+./mvnw spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/policyholders.yml"
 ```
 
 **Experts service (port 8082):**
 ```bash
 cd microservices/directory
-mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/experts.yml"
+./mvnw spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/experts.yml"
 ```
 
 **Providers service (port 8083):**
 ```bash
 cd microservices/directory
-mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/providers.yml"
+./mvnw spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/providers.yml"
 ```
 
 **Note:** The service starts on its configured port by default (8081 for policyholders, 8082 for experts, etc.). In Docker, the `SERVER_PORT` environment variable overrides this to 8080 for uniformity.
 
 **Override port for local testing:**
 ```bash
-SERVER_PORT=9000 mvn spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/policyholders.yml"
+SERVER_PORT=9000 ./mvnw spring-boot:run -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/policyholders.yml"
 ```
 
 **What Happens:**
@@ -491,12 +491,12 @@ Replace port `8081` with `8082` for experts or `8083` for providers.
 
 **Run tests for directory microservice:**
 ```bash
-mvn -f microservices/directory/pom.xml test
+./mvnw -f microservices/directory/pom.xml test
 ```
 
 **Run tests from project root:**
 ```bash
-mvn test
+./mvnw test
 ```
 
 ## Key Implementation Notes

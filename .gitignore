@@ -34,3 +34,6 @@ keys/*
 
 # Environment files with secrets
 .env
+
+.idea/dataSources
+.idea/dataSources.local.xml

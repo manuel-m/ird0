@@ -34,6 +34,7 @@
         <resilience4j.version>2.2.0</resilience4j.version>
         <jacoco.version>0.8.12</jacoco.version>
         <sonar.version>4.0.0.4121</sonar.version>
+        <springdoc.version>2.8.4</springdoc.version>
         <sonar.projectKey>ird0-insurance-platform</sonar.projectKey>
         <sonar.projectName>IRD0 Insurance Platform</sonar.projectName>
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
@@ -120,6 +121,13 @@
                 <artifactId>commons</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
+            <!-- SpringDoc OpenAPI for Spring Boot 3 -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -174,6 +182,13 @@
                             </goals>
                         </execution>
                     </executions>
+                </plugin>
+
+                <!-- SpringDoc OpenAPI Maven Plugin -->
+                <plugin>
+                    <groupId>org.springdoc</groupId>
+                    <artifactId>springdoc-openapi-maven-plugin</artifactId>
+                    <version>1.4</version>
                 </plugin>
             </plugins>
         </pluginManagement>

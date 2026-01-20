@@ -29,12 +29,12 @@ This is a **plain Java CLI application** (not Spring Boot), built with:
 
 **Build the utility along with the entire project:**
 ```bash
-mvn clean package
+./mvnw clean package
 ```
 
 **Build only the data generator module:**
 ```bash
-mvn -f utilities/directory-data-generator/pom.xml clean package
+./mvnw -f utilities/directory-data-generator/pom.xml clean package
 ```
 
 **Output:**
@@ -315,9 +315,9 @@ java -jar utilities/directory-data-generator/target/directory-data-generator.jar
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| JAR not found | Run `mvn clean package` from root or module directory |
-| Out of memory | Increase JVM heap: `java -Xmx512m -jar ...` |
-| CSV encoding issues | Ensure UTF-8 encoding for special characters |
-| Import fails | Check CSV format matches expected schema |
+| Issue | Solution                                                 |
+|-------|----------------------------------------------------------|
+| JAR not found | Run `./mvnw clean package` from root or module directory |
+| Out of memory | Increase JVM heap: `java -Xmx512m -jar ...`              |
+| CSV encoding issues | Ensure UTF-8 encoding for special characters             |
+| Import fails | Check CSV format matches expected schema                 |

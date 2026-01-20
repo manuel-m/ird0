@@ -1,0 +1,28 @@
+server:
+  port: 0
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;INIT=CREATE DOMAIN IF NOT EXISTS JSONB AS JSON
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+incident:
+  api:
+    base-path: /api/v1/incidents
+  directory:
+    policyholders-url: http://localhost:8081
+    insurers-url: http://localhost:8084
+    experts-url: http://localhost:8082
+    providers-url: http://localhost:8083
+  notification:
+    enabled: false

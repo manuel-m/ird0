@@ -104,7 +104,7 @@ resilience4j:
 **Run the service:**
 ```bash
 cd microservices/incident
-mvn spring-boot:run \
+./mvnw spring-boot:run \
   -Dspring-boot.run.arguments="--spring.config.location=file:configs/application.yml,file:configs/incident.yml"
 ```
 
@@ -208,12 +208,12 @@ When the circuit breaker opens, validation calls fail fast with a clear error me
 
 **Run tests:**
 ```bash
-mvn -f microservices/incident/pom.xml test
+./mvnw -f microservices/incident/pom.xml test
 ```
 
 **Test coverage report:**
 ```bash
-mvn -f microservices/incident/pom.xml verify
+./mvnw -f microservices/incident/pom.xml verify
 # Report at target/site/jacoco/index.html
 ```
 
