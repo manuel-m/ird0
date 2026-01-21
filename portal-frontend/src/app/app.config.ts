@@ -5,12 +5,15 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { routes } from './app.routes';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
+import { environment } from '../environments/environment';
+import { provideApi } from './generated/api';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withInterceptors([errorInterceptor, loadingInterceptor])),
-    provideAnimationsAsync()
+    provideAnimationsAsync(),
+    provideApi(environment.apiUrl)
   ]
 };

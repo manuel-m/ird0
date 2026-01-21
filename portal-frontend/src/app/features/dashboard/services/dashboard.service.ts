@@ -1,26 +1,28 @@
 import { Injectable, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { environment } from '../../../../environments/environment';
 import { Dashboard } from '../../../core/models/dashboard.model';
+import { DashboardService as GeneratedDashboardService } from '../../../generated/api';
+
+// Options to force JSON response type from the generated API
+const jsonOptions = {
+  httpHeaderAccept: 'application/json' as const,
+};
 
 @Injectable({
   providedIn: 'root'
 })
 export class DashboardService {
-  private readonly apiUrl = environment.apiUrl;
-
   private dashboardSignal = signal<Dashboard | null>(null);
   private loadingSignal = signal<boolean>(false);
 
   readonly dashboard = this.dashboardSignal.asReadonly();
   readonly loading = this.loadingSignal.asReadonly();
 
-  constructor(private http: HttpClient) {}
+  constructor(private api: GeneratedDashboardService) {}
 
   loadDashboard(): Observable<Dashboard> {
     this.loadingSignal.set(true);
-    return this.http.get<Dashboard>(`${this.apiUrl}/dashboard`).pipe(
+    return (this.api.getDashboard('body', false, jsonOptions as any) as Observable<Dashboard>).pipe(
       tap({
         next: (dashboard) => {
           this.dashboardSignal.set(dashboard);

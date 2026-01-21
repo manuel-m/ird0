@@ -8,7 +8,11 @@
       "Bash(./mvnw:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(pnpm run build:*)",
+      "Bash(docker ps:*)",
+      "Bash(curl:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

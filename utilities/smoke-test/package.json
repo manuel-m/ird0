@@ -1,0 +1,16 @@
+{
+  "name": "smoke-test",
+  "version": "1.0.0",
+  "description": "CLI tool to smoke test OpenAPI endpoints",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild smoke-test.js --bundle --platform=node --outdir=dist --format=esm"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "glob": "^10.3.10"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}

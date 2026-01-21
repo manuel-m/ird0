@@ -23,6 +23,8 @@ apps-stop \
 apps-build \
 apps-start \
 apps-restart \
+service-restart \
+front-build \
 restart \
 sonar \
 sonar-start \
@@ -35,15 +37,22 @@ setup-dirs \
 start-db \
 java-verify \
 test-data-build \
-test-data-inject
+test-data-inject \
+smoke-test-build \
+smoke-test
 
 all: restart
 
-restart: stop docker-build setup-dirs core-start vault-init start-rest
+restart: stop docker-build setup-dirs core-start vault-init start-rest front-build
 
 reinit: stop-rm-volumes docker-build setup-dirs core-start vault-init start-rest
 
-apps-restart: apps-stop apps-build apps-start
+apps-restart: apps-stop java-verify apps-build apps-start
+
+service-restart:
+	docker compose -p $(PROJECT_NAME) down $(SVC)
+	docker compose -p $(PROJECT_NAME) build $(SVC)
+	docker compose -p $(PROJECT_NAME) up -d $(SVC)
 
 apps-start:
 	docker compose -p $(PROJECT_NAME) up -d $(APP_SERVICES)
@@ -59,8 +68,10 @@ core-start:
 	sleep 4
 
 front-dev:
-	cd portal-frontend
-	pnpm start
+	cd portal-frontend && pnpm generate-api && pnpm start
+
+front-build:
+	cd portal-frontend && pnpm generate-api && pnpm build
 
 setup-dirs:
 	@mkdir -p data/sftp-metadata data/sftp-errors data/sftp-failed temp/sftp-downloads
@@ -83,6 +94,9 @@ vault-init:
 start-rest:
 	docker compose -p $(PROJECT_NAME) up -d
 
+java-prettier:
+	./mvnw spotless:apply -f microservices/incident/pom.xm
+
 java-verify:
 	./mvnw clean verify
 
@@ -91,8 +105,10 @@ test-data-build:
 	./mvnw -f utilities/directory-data-generator/pom.xml clean package
 
 test-data-inject:
-	java -jar utilities/directory-data-generator/target/directory-data-generator.jar -o /tmp/policyholders.csv
-	curl -X POST http://localhost:8081/api/policyholders/import -F "file=@/tmp/policyholders.csv"
+	java -jar utilities/directory-data-generator/target/directory-data-generator.jar 100 -e POLICYHOLDER -o /tmp/policyholders.csv
+	curl -X POST http://localhost:$(POLICYHOLDERS_HOST_PORT)/api/policyholders/import -F "file=@/tmp/policyholders.csv"
+	java -jar utilities/directory-data-generator/target/directory-data-generator.jar 5 -e INSURER -o /tmp/insurers.csv
+	curl -X POST http://localhost:$(INSURERS_HOST_PORT)/api/insurers/import -F "file=@/tmp/insurers.csv"
 
 
 sonar:
@@ -128,3 +144,9 @@ sonar-logs:
 	docker compose -p $(PROJECT_NAME) -f $(SONAR_COMPOSE_FILE) logs -f sonarqube
 
 sonar-restart: sonar-stop sonar-start
+
+smoke-test-build:
+	cd utilities/smoke-test && pnpm install && pnpm build
+
+smoke-test:
+	node utilities/smoke-test/dist/smoke-test.js

@@ -92,11 +92,33 @@ paths:
         schema:
           type: string
           format: date-time
-      - name: pageable
+      - name: page
         in: query
-        required: true
+        description: Zero-based page index (0..N)
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - name: size
+        in: query
+        description: The size of the page to be returned
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - name: sort
+        in: query
+        description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        required: false
+        schema:
+          type: array
+          default:
+          - "createdAt,ASC"
+          items:
+            type: string
       responses:
         "200":
           description: Paginated list of incidents
@@ -487,21 +509,6 @@ components:
       - authorId
       - authorType
       - content
-    Pageable:
-      type: object
-      properties:
-        page:
-          type: integer
-          format: int32
-          minimum: 0
-        size:
-          type: integer
-          format: int32
-          minimum: 1
-        sort:
-          type: array
-          items:
-            type: string
     IncidentSummaryResponse:
       type: object
       properties:
@@ -539,11 +546,11 @@ components:
         totalPages:
           type: integer
           format: int32
+        pageable:
+          $ref: "#/components/schemas/PageableObject"
         numberOfElements:
           type: integer
           format: int32
-        pageable:
-          $ref: "#/components/schemas/PageableObject"
         size:
           type: integer
           format: int32
@@ -565,16 +572,16 @@ components:
     PageableObject:
       type: object
       properties:
-        unpaged:
-          type: boolean
-        pageNumber:
-          type: integer
-          format: int32
         paged:
           type: boolean
         pageSize:
           type: integer
           format: int32
+        pageNumber:
+          type: integer
+          format: int32
+        unpaged:
+          type: boolean
         offset:
           type: integer
           format: int64

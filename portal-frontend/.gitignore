@@ -5,6 +5,9 @@
 /dist
 /.angular
 
+# Generated API client (regenerate with: pnpm run generate-api)
+/src/app/generated
+
 # IDE
 .idea/
 *.iml
