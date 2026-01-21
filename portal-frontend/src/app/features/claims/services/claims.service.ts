@@ -23,6 +23,11 @@ export interface ClaimsFilter {
   toDate?: string;
 }
 
+// Options to force JSON response type from the generated API
+const jsonOptions = {
+  httpHeaderAccept: 'application/json' as const,
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -79,7 +84,10 @@ export class ClaimsService {
       filter.toDate,
       page,
       size,
-      sort
+      sort,
+      'body',
+      false,
+      jsonOptions as any
     ) as Observable<Page<ClaimSummary>>).pipe(
       tap({
         next: (response) => {
@@ -98,7 +106,7 @@ export class ClaimsService {
 
   getClaimById(id: string): Observable<ClaimDetail> {
     this.loadingSignal.set(true);
-    return (this.api.getClaimById(id) as Observable<ClaimDetail>).pipe(
+    return (this.api.getClaimById(id, 'body', false, jsonOptions as any) as Observable<ClaimDetail>).pipe(
       tap({
         next: (claim) => {
           this.selectedClaimSignal.set(claim);
@@ -113,7 +121,7 @@ export class ClaimsService {
 
   createClaim(request: CreateClaimRequest): Observable<ClaimDetail> {
     this.loadingSignal.set(true);
-    return (this.api.createClaim(request) as Observable<ClaimDetail>).pipe(
+    return (this.api.createClaim(request, 'body', false, jsonOptions as any) as Observable<ClaimDetail>).pipe(
       tap({
         next: (claim) => {
           this.selectedClaimSignal.set(claim);
@@ -128,7 +136,7 @@ export class ClaimsService {
 
   updateStatus(id: string, request: StatusUpdateRequest): Observable<ClaimDetail> {
     this.loadingSignal.set(true);
-    return (this.api.updateClaimStatus(id, request) as Observable<ClaimDetail>).pipe(
+    return (this.api.updateClaimStatus(id, request, 'body', false, jsonOptions as any) as Observable<ClaimDetail>).pipe(
       tap({
         next: (claim) => {
           this.selectedClaimSignal.set(claim);
@@ -143,7 +151,7 @@ export class ClaimsService {
 
   assignExpert(id: string, request: ExpertAssignmentRequest): Observable<ClaimDetail> {
     this.loadingSignal.set(true);
-    return (this.api.assignExpert(id, request) as Observable<ClaimDetail>).pipe(
+    return (this.api.assignExpert(id, request, 'body', false, jsonOptions as any) as Observable<ClaimDetail>).pipe(
       tap({
         next: (claim) => {
           this.selectedClaimSignal.set(claim);
@@ -157,7 +165,7 @@ export class ClaimsService {
   }
 
   addComment(id: string, request: CommentRequest): Observable<ClaimDetail> {
-    return (this.api.addClaimComment(id, request) as Observable<ClaimDetail>).pipe(
+    return (this.api.addClaimComment(id, request, 'body', false, jsonOptions as any) as Observable<ClaimDetail>).pipe(
       tap((claim) => {
         this.selectedClaimSignal.set(claim);
       })
@@ -165,23 +173,23 @@ export class ClaimsService {
   }
 
   getComments(id: string): Observable<Comment[]> {
-    return this.api.getClaimComments(id) as Observable<Comment[]>;
+    return this.api.getClaimComments(id, 'body', false, jsonOptions as any) as Observable<Comment[]>;
   }
 
   getHistory(id: string): Observable<Event[]> {
-    return this.api.getClaimHistory(id) as Observable<Event[]>;
+    return this.api.getClaimHistory(id, 'body', false, jsonOptions as any) as Observable<Event[]>;
   }
 
   getExperts(): Observable<Actor[]> {
-    return this.api.getExperts() as Observable<Actor[]>;
+    return this.api.getExperts('body', false, jsonOptions as any) as Observable<Actor[]>;
   }
 
   getPolicyholders(): Observable<Actor[]> {
-    return this.api.getPolicyholders() as Observable<Actor[]>;
+    return this.api.getPolicyholders('body', false, jsonOptions as any) as Observable<Actor[]>;
   }
 
   getInsurers(): Observable<Actor[]> {
-    return this.api.getInsurers() as Observable<Actor[]>;
+    return this.api.getInsurers('body', false, jsonOptions as any) as Observable<Actor[]>;
   }
 
   clearSelectedClaim(): void {

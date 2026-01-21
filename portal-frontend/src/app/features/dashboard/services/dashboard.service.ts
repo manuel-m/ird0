@@ -3,6 +3,11 @@ import { Observable, tap } from 'rxjs';
 import { Dashboard } from '../../../core/models/dashboard.model';
 import { DashboardService as GeneratedDashboardService } from '../../../generated/api';
 
+// Options to force JSON response type from the generated API
+const jsonOptions = {
+  httpHeaderAccept: 'application/json' as const,
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -17,7 +22,7 @@ export class DashboardService {
 
   loadDashboard(): Observable<Dashboard> {
     this.loadingSignal.set(true);
-    return (this.api.getDashboard() as Observable<Dashboard>).pipe(
+    return (this.api.getDashboard('body', false, jsonOptions as any) as Observable<Dashboard>).pipe(
       tap({
         next: (dashboard) => {
           this.dashboardSignal.set(dashboard);
