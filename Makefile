@@ -23,6 +23,7 @@ apps-stop \
 apps-build \
 apps-start \
 apps-restart \
+service-restart \
 front-build \
 restart \
 sonar \
@@ -36,7 +37,9 @@ setup-dirs \
 start-db \
 java-verify \
 test-data-build \
-test-data-inject
+test-data-inject \
+smoke-test-build \
+smoke-test
 
 all: restart
 
@@ -45,6 +48,11 @@ restart: stop docker-build setup-dirs core-start vault-init start-rest front-bui
 reinit: stop-rm-volumes docker-build setup-dirs core-start vault-init start-rest
 
 apps-restart: apps-stop java-verify apps-build apps-start
+
+service-restart:
+	docker compose -p $(PROJECT_NAME) down $(SVC)
+	docker compose -p $(PROJECT_NAME) build $(SVC)
+	docker compose -p $(PROJECT_NAME) up -d $(SVC)
 
 apps-start:
 	docker compose -p $(PROJECT_NAME) up -d $(APP_SERVICES)
@@ -134,3 +142,9 @@ sonar-logs:
 	docker compose -p $(PROJECT_NAME) -f $(SONAR_COMPOSE_FILE) logs -f sonarqube
 
 sonar-restart: sonar-stop sonar-start
+
+smoke-test-build:
+	cd utilities/smoke-test && pnpm install && pnpm build
+
+smoke-test:
+	node utilities/smoke-test/dist/smoke-test.js

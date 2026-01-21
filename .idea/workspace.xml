@@ -4,9 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ff1307c4-2370-4d35-b8c1-d1eba16daa64" name="Changes" comment="feat: openApi integration">
-      <change afterPath="$PROJECT_DIR$/doc/prompts/tech/fix-frontend.md" afterDir="false" />
+    <list default="true" id="ff1307c4-2370-4d35-b8c1-d1eba16daa64" name="Changes" comment="feat: openApi frontend">
+      <change afterPath="$PROJECT_DIR$/doc/prompts/tech/smoke-test.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/utilities/smoke-test/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/Makefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/microservices/incident/openapi/incident-api.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/microservices/incident/openapi/incident-api.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,39 +49,39 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
-    &quot;Docker.deploy/docker-compose.directory.yml.experts-svc: Compose Deployment.executor&quot;: &quot;Run&quot;,
-    &quot;Maven.directory [test].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.incident [compile].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.insurance-platform [clean].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.insurance-platform [compile].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.insurance-platform [test].executor&quot;: &quot;Run&quot;,
-    &quot;Maven.portal-bff [compile].executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;tech/openApi&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;//wsl.localhost/Ubuntu/home/gal/w/code/git/ird0/doc/prompts/tech&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;run.configurations.included.in.services&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "Docker.deploy/docker-compose.directory.yml.experts-svc: Compose Deployment.executor": "Run",
+    "Maven.directory [test].executor": "Run",
+    "Maven.incident [compile].executor": "Run",
+    "Maven.insurance-platform [clean].executor": "Run",
+    "Maven.insurance-platform [compile].executor": "Run",
+    "Maven.insurance-platform [test].executor": "Run",
+    "Maven.portal-bff [compile].executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "tech/openApiFront",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "//wsl.localhost/Ubuntu/home/gal/w/code/git/ird0/doc/prompts/tech",
+    "nodejs_package_manager_path": "pnpm",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
+    "run.configurations.included.in.services": "true",
+    "settings.editor.selected.configurable": "preferences.keymap",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;DatabaseDriversLRU&quot;: [
-      &quot;postgresql&quot;
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "postgresql"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="\\wsl.localhost\Ubuntu\home\gal\w\code\git\ird0\doc\prompts\tech" />
@@ -193,6 +196,7 @@
       <workItem from="1768925133153" duration="940000" />
       <workItem from="1768926096420" duration="20994000" />
       <workItem from="1768991819380" duration="12000" />
+      <workItem from="1769006885756" duration="3938000" />
     </task>
     <task id="LOCAL-00001" summary="feat: openApi integration">
       <option name="closed" value="true" />
@@ -282,7 +286,15 @@
       <option name="project" value="LOCAL" />
       <updated>1768949335829</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="feat: openApi frontend">
+      <option name="closed" value="true" />
+      <created>1769007057923</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1769007057923</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -345,6 +357,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="feat: openApi integration" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: openApi integration" />
+    <MESSAGE value="feat: openApi frontend" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: openApi frontend" />
   </component>
 </project>
