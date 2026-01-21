@@ -10,7 +10,9 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(pnpm run build:*)",
-      "Bash(docker ps:*)"
+      "Bash(docker ps:*)",
+      "Bash(curl:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

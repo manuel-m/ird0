@@ -14,19 +14,26 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 /**
- * CLI utility to generate fake policyholder data as CSV.
+ * CLI utility to generate fake directory data as CSV.
  *
- * <p>Usage: java -jar policyholder-data-generator.jar java -jar policyholder-data-generator.jar 500
- * java -jar policyholder-data-generator.jar 100 -o custom-output.csv
+ * <p>Usage: java -jar directory-data-generator.jar java -jar directory-data-generator.jar 500
+ * java -jar directory-data-generator.jar 100 -o custom-output.csv java -jar
+ * directory-data-generator.jar 100 -e INSURER
  */
 @Slf4j
 @Command(
     name = "data-generator",
     mixinStandardHelpOptions = true,
     version = "1.0.0",
-    description = "Generates fake policyholder data compatible with DirectoryEntry model")
+    description = "Generates fake directory data compatible with DirectoryEntry model")
 @SuppressWarnings("java:S106") // CLI tool intentionally uses System.out/System.err
 public class DataGeneratorCLI implements Callable<Integer> {
+
+  /** Entity types supported by the data generator. */
+  public enum EntityType {
+    POLICYHOLDER,
+    INSURER
+  }
 
   @Parameters(
       index = "0",
@@ -37,10 +44,16 @@ public class DataGeneratorCLI implements Callable<Integer> {
   private int recordCount;
 
   @Option(
+      names = {"-e", "--entity-type"},
+      description = "Entity type to generate: ${COMPLETION-CANDIDATES} (default: POLICYHOLDER)",
+      paramLabel = "TYPE",
+      defaultValue = "POLICYHOLDER")
+  private EntityType entityType;
+
+  @Option(
       names = {"-o", "--output"},
-      description = "Output CSV file path (default: policyholders.csv)",
-      paramLabel = "FILE",
-      defaultValue = "policyholders.csv")
+      description = "Output CSV file path (default: based on entity type)",
+      paramLabel = "FILE")
   private String outputFile;
 
   @Override
@@ -52,17 +65,20 @@ public class DataGeneratorCLI implements Callable<Integer> {
         return 1;
       }
 
-      System.out.println("Generating " + recordCount + " policyholder records...");
+      // Determine output file based on entity type if not specified
+      String targetFile = outputFile != null ? outputFile : getDefaultOutputFile();
 
-      // Generate data
-      PolicyholderDataGenerator generator = new PolicyholderDataGenerator();
-      List<DirectoryEntry> records = generator.generateRecords(recordCount);
+      System.out.println(
+          "Generating " + recordCount + " " + entityType.name().toLowerCase() + " records...");
+
+      // Generate data based on entity type
+      List<DirectoryEntry> records = generateRecords();
 
       // Write to CSV
-      writeToCSV(records, outputFile);
+      writeToCSV(records, targetFile);
 
       System.out.println("Successfully generated " + recordCount + " records");
-      System.out.println("Output file: " + outputFile);
+      System.out.println("Output file: " + targetFile);
 
       return 0;
 
@@ -75,13 +91,27 @@ public class DataGeneratorCLI implements Callable<Integer> {
     }
   }
 
-  /** Writes policyholder records to CSV file with proper formatting. */
+  private String getDefaultOutputFile() {
+    return switch (entityType) {
+      case POLICYHOLDER -> "policyholders.csv";
+      case INSURER -> "insurers.csv";
+    };
+  }
+
+  private List<DirectoryEntry> generateRecords() {
+    return switch (entityType) {
+      case POLICYHOLDER -> new PolicyholderDataGenerator().generateRecords(recordCount);
+      case INSURER -> new InsurerDataGenerator().generateRecords(recordCount);
+    };
+  }
+
+  /** Writes directory entry records to CSV file with proper formatting. */
   private void writeToCSV(List<DirectoryEntry> records, String filePath) throws IOException {
 
     CSVFormat csvFormat =
         CSVFormat.DEFAULT
             .builder()
-            .setHeader("name", "type", "email", "phone", "address", "additionalInfo")
+            .setHeader("name", "type", "email", "phone", "address", "additionalInfo", "webhookUrl")
             .build();
 
     try (FileWriter writer = new FileWriter(filePath);
@@ -94,7 +124,8 @@ public class DataGeneratorCLI implements Callable<Integer> {
             entry.getEmail(),
             entry.getPhone(),
             entry.getAddress(),
-            entry.getAdditionalInfo());
+            entry.getAdditionalInfo(),
+            entry.getWebhookUrl());
       }
 
       csvPrinter.flush();

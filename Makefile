@@ -105,8 +105,10 @@ test-data-build:
 	./mvnw -f utilities/directory-data-generator/pom.xml clean package
 
 test-data-inject:
-	java -jar utilities/directory-data-generator/target/directory-data-generator.jar -o /tmp/policyholders.csv
-	curl -X POST http://localhost:8081/api/policyholders/import -F "file=@/tmp/policyholders.csv"
+	java -jar utilities/directory-data-generator/target/directory-data-generator.jar 100 -e POLICYHOLDER -o /tmp/policyholders.csv
+	curl -X POST http://localhost:$(POLICYHOLDERS_HOST_PORT)/api/policyholders/import -F "file=@/tmp/policyholders.csv"
+	java -jar utilities/directory-data-generator/target/directory-data-generator.jar 5 -e INSURER -o /tmp/insurers.csv
+	curl -X POST http://localhost:$(INSURERS_HOST_PORT)/api/insurers/import -F "file=@/tmp/insurers.csv"
 
 
 sonar:
