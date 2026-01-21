@@ -562,6 +562,9 @@ components:
         policyholderId:
           type: string
           format: uuid
+        insurerId:
+          type: string
+          format: uuid
         status:
           type: string
           enum:
@@ -588,11 +591,15 @@ components:
         totalPages:
           type: integer
           format: int32
-        pageable:
-          $ref: "#/components/schemas/PageableObject"
         numberOfElements:
           type: integer
           format: int32
+        pageable:
+          $ref: "#/components/schemas/PageableObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
         size:
           type: integer
           format: int32
@@ -605,10 +612,6 @@ components:
           format: int32
         sort:
           $ref: "#/components/schemas/SortObject"
-        first:
-          type: boolean
-        last:
-          type: boolean
         empty:
           type: boolean
     PageableObject:
@@ -616,12 +619,12 @@ components:
       properties:
         unpaged:
           type: boolean
+        pageNumber:
+          type: integer
+          format: int32
         paged:
           type: boolean
         pageSize:
-          type: integer
-          format: int32
-        pageNumber:
           type: integer
           format: int32
         offset:

@@ -1,6 +1,7 @@
 package com.ird0.incident.dto;
 
 import com.ird0.incident.model.IncidentStatus;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -19,5 +20,7 @@ public class IncidentSummaryResponse {
   private IncidentStatus status;
   private String type;
   private Instant incidentDate;
+  private BigDecimal estimatedDamage;
+  private String currency;
   private Instant createdAt;
 }
