@@ -8,6 +8,7 @@ import com.ird0.incident.dto.IncidentEventResponse;
 import com.ird0.incident.dto.IncidentResponse;
 import com.ird0.incident.dto.IncidentSummaryResponse;
 import com.ird0.incident.dto.StatusUpdateRequest;
+import com.ird0.incident.dto.UpdateInsurerRequest;
 import com.ird0.incident.mapper.IncidentMapper;
 import com.ird0.incident.model.Incident;
 import com.ird0.incident.model.IncidentStatus;
@@ -108,6 +109,20 @@ public class IncidentController {
     // In a real app, updatedBy would come from authentication context
     UUID userId = updatedBy != null ? updatedBy : UUID.randomUUID();
     Incident incident = incidentService.updateStatus(id, request, userId);
+    return ResponseEntity.ok(incidentMapper.toResponse(incident));
+  }
+
+  @Operation(summary = "Update incident insurer", operationId = "updateIncidentInsurer")
+  @ApiResponse(responseCode = "200", description = "Insurer updated")
+  @PutMapping("/{id}/insurer")
+  public ResponseEntity<IncidentResponse> updateInsurer(
+      @PathVariable UUID id,
+      @Valid @RequestBody UpdateInsurerRequest request,
+      @RequestParam(required = false) UUID updatedBy) {
+    // In a real app, updatedBy would come from authentication context
+    UUID userId = updatedBy != null ? updatedBy : UUID.randomUUID();
+    Incident incident =
+        incidentService.updateInsurer(id, request.getInsurerId(), request.getReason(), userId);
     return ResponseEntity.ok(incidentMapper.toResponse(incident));
   }
 
