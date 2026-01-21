@@ -1,7 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { environment } from '../../../../environments/environment';
 import {
   ClaimSummary,
   ClaimDetail,
@@ -14,6 +12,7 @@ import {
   Actor,
   Page
 } from '../../../core/models/claim.model';
+import { ClaimsService as GeneratedClaimsService } from '../../../generated/api';
 
 export interface ClaimsFilter {
   policyholderId?: string;
@@ -28,8 +27,6 @@ export interface ClaimsFilter {
   providedIn: 'root'
 })
 export class ClaimsService {
-  private readonly apiUrl = environment.apiUrl;
-
   // Signals for reactive state
   private claimsSignal = signal<ClaimSummary[]>([]);
   private selectedClaimSignal = signal<ClaimDetail | null>(null);
@@ -63,7 +60,7 @@ export class ClaimsService {
     this.claimsSignal().filter((c) => c.status === 'CLOSED')
   );
 
-  constructor(private http: HttpClient) {}
+  constructor(private api: GeneratedClaimsService) {}
 
   loadClaims(
     filter: ClaimsFilter = {},
@@ -73,31 +70,17 @@ export class ClaimsService {
   ): Observable<Page<ClaimSummary>> {
     this.loadingSignal.set(true);
 
-    let params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString())
-      .set('sort', sort);
-
-    if (filter.policyholderId) {
-      params = params.set('policyholderId', filter.policyholderId);
-    }
-    if (filter.insurerId) {
-      params = params.set('insurerId', filter.insurerId);
-    }
-    if (filter.status) {
-      params = params.set('status', filter.status);
-    }
-    if (filter.type) {
-      params = params.set('type', filter.type);
-    }
-    if (filter.fromDate) {
-      params = params.set('fromDate', filter.fromDate);
-    }
-    if (filter.toDate) {
-      params = params.set('toDate', filter.toDate);
-    }
-
-    return this.http.get<Page<ClaimSummary>>(`${this.apiUrl}/claims`, { params }).pipe(
+    return (this.api.getClaims(
+      filter.policyholderId,
+      filter.insurerId,
+      filter.status,
+      filter.type,
+      filter.fromDate,
+      filter.toDate,
+      page,
+      size,
+      sort
+    ) as Observable<Page<ClaimSummary>>).pipe(
       tap({
         next: (response) => {
           this.claimsSignal.set(response.content);
@@ -115,7 +98,7 @@ export class ClaimsService {
 
   getClaimById(id: string): Observable<ClaimDetail> {
     this.loadingSignal.set(true);
-    return this.http.get<ClaimDetail>(`${this.apiUrl}/claims/${id}`).pipe(
+    return (this.api.getClaimById(id) as Observable<ClaimDetail>).pipe(
       tap({
         next: (claim) => {
           this.selectedClaimSignal.set(claim);
@@ -130,7 +113,7 @@ export class ClaimsService {
 
   createClaim(request: CreateClaimRequest): Observable<ClaimDetail> {
     this.loadingSignal.set(true);
-    return this.http.post<ClaimDetail>(`${this.apiUrl}/claims`, request).pipe(
+    return (this.api.createClaim(request) as Observable<ClaimDetail>).pipe(
       tap({
         next: (claim) => {
           this.selectedClaimSignal.set(claim);
@@ -145,7 +128,7 @@ export class ClaimsService {
 
   updateStatus(id: string, request: StatusUpdateRequest): Observable<ClaimDetail> {
     this.loadingSignal.set(true);
-    return this.http.put<ClaimDetail>(`${this.apiUrl}/claims/${id}/status`, request).pipe(
+    return (this.api.updateClaimStatus(id, request) as Observable<ClaimDetail>).pipe(
       tap({
         next: (claim) => {
           this.selectedClaimSignal.set(claim);
@@ -160,7 +143,7 @@ export class ClaimsService {
 
   assignExpert(id: string, request: ExpertAssignmentRequest): Observable<ClaimDetail> {
     this.loadingSignal.set(true);
-    return this.http.post<ClaimDetail>(`${this.apiUrl}/claims/${id}/expert`, request).pipe(
+    return (this.api.assignExpert(id, request) as Observable<ClaimDetail>).pipe(
       tap({
         next: (claim) => {
           this.selectedClaimSignal.set(claim);
@@ -174,7 +157,7 @@ export class ClaimsService {
   }
 
   addComment(id: string, request: CommentRequest): Observable<ClaimDetail> {
-    return this.http.post<ClaimDetail>(`${this.apiUrl}/claims/${id}/comments`, request).pipe(
+    return (this.api.addClaimComment(id, request) as Observable<ClaimDetail>).pipe(
       tap((claim) => {
         this.selectedClaimSignal.set(claim);
       })
@@ -182,23 +165,23 @@ export class ClaimsService {
   }
 
   getComments(id: string): Observable<Comment[]> {
-    return this.http.get<Comment[]>(`${this.apiUrl}/claims/${id}/comments`);
+    return this.api.getClaimComments(id) as Observable<Comment[]>;
   }
 
   getHistory(id: string): Observable<Event[]> {
-    return this.http.get<Event[]>(`${this.apiUrl}/claims/${id}/history`);
+    return this.api.getClaimHistory(id) as Observable<Event[]>;
   }
 
   getExperts(): Observable<Actor[]> {
-    return this.http.get<Actor[]>(`${this.apiUrl}/experts`);
+    return this.api.getExperts() as Observable<Actor[]>;
   }
 
   getPolicyholders(): Observable<Actor[]> {
-    return this.http.get<Actor[]>(`${this.apiUrl}/policyholders`);
+    return this.api.getPolicyholders() as Observable<Actor[]>;
   }
 
   getInsurers(): Observable<Actor[]> {
-    return this.http.get<Actor[]>(`${this.apiUrl}/insurers`);
+    return this.api.getInsurers() as Observable<Actor[]>;
   }
 
   clearSelectedClaim(): void {

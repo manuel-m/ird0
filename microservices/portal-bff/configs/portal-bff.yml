@@ -1,6 +1,10 @@
 server:
   port: ${SERVER_PORT:8090}
 
+openapi:
+  server:
+    url: ${OPENAPI_SERVER_URL:}
+
 portal:
   api:
     base-path: /api/portal/v1

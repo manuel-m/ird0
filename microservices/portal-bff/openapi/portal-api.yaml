@@ -6,8 +6,8 @@ info:
     name: IRD0 Development Team
   version: 1.0.0
 servers:
-- url: http://localhost:7777
-  description: API Server
+- url: /
+  description: Relative path
 tags:
 - name: Actors
   description: "Policyholders, insurers, and experts"

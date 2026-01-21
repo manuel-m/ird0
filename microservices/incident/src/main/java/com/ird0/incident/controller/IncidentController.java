@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -89,7 +90,7 @@ public class IncidentController {
       @RequestParam(required = false) String type,
       @RequestParam(required = false) Instant fromDate,
       @RequestParam(required = false) Instant toDate,
-      @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+      @ParameterObject @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
     Page<Incident> incidents =
         incidentService.findWithFilters(
             policyholderId, insurerId, status, type, fromDate, toDate, pageable);

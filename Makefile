@@ -23,6 +23,7 @@ apps-stop \
 apps-build \
 apps-start \
 apps-restart \
+front-build \
 restart \
 sonar \
 sonar-start \
@@ -39,11 +40,11 @@ test-data-inject
 
 all: restart
 
-restart: stop docker-build setup-dirs core-start vault-init start-rest
+restart: stop docker-build setup-dirs core-start vault-init start-rest front-build
 
 reinit: stop-rm-volumes docker-build setup-dirs core-start vault-init start-rest
 
-apps-restart: apps-stop apps-build apps-start
+apps-restart: apps-stop java-verify apps-build apps-start
 
 apps-start:
 	docker compose -p $(PROJECT_NAME) up -d $(APP_SERVICES)
@@ -59,8 +60,10 @@ core-start:
 	sleep 4
 
 front-dev:
-	cd portal-frontend
-	pnpm start
+	cd portal-frontend && pnpm generate-api && pnpm start
+
+front-build:
+	cd portal-frontend && pnpm generate-api && pnpm build
 
 setup-dirs:
 	@mkdir -p data/sftp-metadata data/sftp-errors data/sftp-failed temp/sftp-downloads
@@ -82,6 +85,9 @@ vault-init:
 
 start-rest:
 	docker compose -p $(PROJECT_NAME) up -d
+
+java-prettier:
+	./mvnw spotless:apply -f microservices/incident/pom.xm
 
 java-verify:
 	./mvnw clean verify
