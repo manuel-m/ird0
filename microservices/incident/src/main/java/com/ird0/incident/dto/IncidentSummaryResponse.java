@@ -15,6 +15,7 @@ public class IncidentSummaryResponse {
   private UUID id;
   private String referenceNumber;
   private UUID policyholderId;
+  private UUID insurerId;
   private IncidentStatus status;
   private String type;
   private Instant incidentDate;

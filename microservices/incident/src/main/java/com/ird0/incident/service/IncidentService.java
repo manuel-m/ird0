@@ -173,6 +173,34 @@ public class IncidentService {
   }
 
   @Transactional
+  public Incident updateInsurer(UUID incidentId, UUID insurerId, String reason, UUID updatedBy) {
+    Incident incident = getById(incidentId);
+    UUID previousInsurerId = incident.getInsurerId();
+
+    log.info(
+        "Updating incident {} insurer from {} to {}",
+        incident.getReferenceNumber(),
+        previousInsurerId,
+        insurerId);
+
+    // Validate insurer exists
+    directoryValidationService.validateInsurer(insurerId);
+
+    incident.setInsurerId(insurerId);
+
+    // Create insurer change event
+    IncidentEvent event =
+        IncidentEvent.createInsurerUpdatedEvent(
+            incident, previousInsurerId, insurerId, updatedBy, reason);
+    incident.addEvent(event);
+
+    Incident saved = incidentRepository.save(incident);
+    log.info("Updated insurer for incident {}", saved.getReferenceNumber());
+
+    return saved;
+  }
+
+  @Transactional
   public Incident assignExpert(UUID incidentId, ExpertAssignmentRequest request, UUID assignedBy) {
     Incident incident = getById(incidentId);
 

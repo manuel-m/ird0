@@ -44,6 +44,38 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/IncidentResponse"
+  /api/v1/incidents/{id}/insurer:
+    put:
+      tags:
+      - Incidents
+      summary: Update incident insurer
+      operationId: updateIncidentInsurer
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: updatedBy
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInsurerRequest"
+        required: true
+      responses:
+        "200":
+          description: Insurer updated
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IncidentResponse"
   /api/v1/incidents:
     get:
       tags:
@@ -448,6 +480,16 @@ components:
         longitude:
           type: number
           format: double
+    UpdateInsurerRequest:
+      type: object
+      properties:
+        insurerId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+      required:
+      - insurerId
     CreateIncidentRequest:
       type: object
       properties:
@@ -572,6 +614,8 @@ components:
     PageableObject:
       type: object
       properties:
+        unpaged:
+          type: boolean
         paged:
           type: boolean
         pageSize:
@@ -580,8 +624,6 @@ components:
         pageNumber:
           type: integer
           format: int32
-        unpaged:
-          type: boolean
         offset:
           type: integer
           format: int64
