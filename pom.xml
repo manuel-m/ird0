@@ -201,6 +201,10 @@
                     <version>3.2.5</version>
                     <configuration>
                         <argLine>@{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+                        <systemPropertyVariables>
+                            <spring.cloud.bootstrap.enabled>false</spring.cloud.bootstrap.enabled>
+                            <spring.cloud.vault.enabled>false</spring.cloud.vault.enabled>
+                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
             </plugins>
