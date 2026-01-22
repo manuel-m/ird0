@@ -61,13 +61,16 @@ class DirectoryEntryControllerTest {
     testEntity.setPhone("555-1234");
     testEntity.setAddress("123 Main St");
 
-    testDto = new DirectoryEntryDTO();
-    testDto.setId(testId);
-    testDto.setName("John Doe");
-    testDto.setType("individual");
-    testDto.setEmail("john@example.com");
-    testDto.setPhone("555-1234");
-    testDto.setAddress("123 Main St");
+    testDto =
+        new DirectoryEntryDTO(
+            testId,
+            "John Doe",
+            "individual",
+            "john@example.com",
+            "555-1234",
+            "123 Main St",
+            null,
+            null);
   }
 
   @Test
@@ -105,25 +108,21 @@ class DirectoryEntryControllerTest {
 
   @Test
   void create_ValidDto_ReturnsCreatedEntry() throws Exception {
-    DirectoryEntryDTO createDto = new DirectoryEntryDTO();
-    createDto.setName("Jane Doe");
-    createDto.setType("individual");
-    createDto.setEmail("jane@example.com");
-    createDto.setPhone("555-5678");
+    DirectoryEntryDTO createDto =
+        new DirectoryEntryDTO(
+            null, "Jane Doe", "individual", "jane@example.com", "555-5678", null, null, null);
 
     DirectoryEntry newEntity = new DirectoryEntry();
-    newEntity.setId(UUID.randomUUID());
+    UUID newId = UUID.randomUUID();
+    newEntity.setId(newId);
     newEntity.setName("Jane Doe");
     newEntity.setType("individual");
     newEntity.setEmail("jane@example.com");
     newEntity.setPhone("555-5678");
 
-    DirectoryEntryDTO responseDto = new DirectoryEntryDTO();
-    responseDto.setId(newEntity.getId());
-    responseDto.setName("Jane Doe");
-    responseDto.setType("individual");
-    responseDto.setEmail("jane@example.com");
-    responseDto.setPhone("555-5678");
+    DirectoryEntryDTO responseDto =
+        new DirectoryEntryDTO(
+            newId, "Jane Doe", "individual", "jane@example.com", "555-5678", null, null, null);
 
     when(mapper.toEntity(any(DirectoryEntryDTO.class))).thenReturn(newEntity);
     when(service.create(any(DirectoryEntry.class))).thenReturn(newEntity);
@@ -141,9 +140,8 @@ class DirectoryEntryControllerTest {
 
   @Test
   void create_InvalidDto_Returns400() throws Exception {
-    DirectoryEntryDTO invalidDto = new DirectoryEntryDTO();
-    invalidDto.setName("");
-    invalidDto.setEmail("invalid-email");
+    DirectoryEntryDTO invalidDto =
+        new DirectoryEntryDTO(null, "", null, "invalid-email", null, null, null, null);
 
     mockMvc
         .perform(
@@ -155,11 +153,16 @@ class DirectoryEntryControllerTest {
 
   @Test
   void update_ValidDto_ReturnsUpdatedEntry() throws Exception {
-    DirectoryEntryDTO updateDto = new DirectoryEntryDTO();
-    updateDto.setName("John Updated");
-    updateDto.setType("individual");
-    updateDto.setEmail("john.updated@example.com");
-    updateDto.setPhone("555-9999");
+    DirectoryEntryDTO updateDto =
+        new DirectoryEntryDTO(
+            null,
+            "John Updated",
+            "individual",
+            "john.updated@example.com",
+            "555-9999",
+            null,
+            null,
+            null);
 
     DirectoryEntry updatedEntity = new DirectoryEntry();
     updatedEntity.setId(testId);
@@ -168,12 +171,16 @@ class DirectoryEntryControllerTest {
     updatedEntity.setEmail("john.updated@example.com");
     updatedEntity.setPhone("555-9999");
 
-    DirectoryEntryDTO responseDto = new DirectoryEntryDTO();
-    responseDto.setId(testId);
-    responseDto.setName("John Updated");
-    responseDto.setType("individual");
-    responseDto.setEmail("john.updated@example.com");
-    responseDto.setPhone("555-9999");
+    DirectoryEntryDTO responseDto =
+        new DirectoryEntryDTO(
+            testId,
+            "John Updated",
+            "individual",
+            "john.updated@example.com",
+            "555-9999",
+            null,
+            null,
+            null);
 
     when(service.getById(testId)).thenReturn(testEntity);
     when(service.update(any(UUID.class), any(DirectoryEntry.class))).thenReturn(updatedEntity);

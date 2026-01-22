@@ -98,13 +98,18 @@ public class IncidentEvent {
   }
 
   public static IncidentEvent createInsurerUpdatedEvent(
-      Incident incident, UUID previousInsurerId, UUID newInsurerId, UUID triggeredBy, String reason) {
+      Incident incident,
+      UUID previousInsurerId,
+      UUID newInsurerId,
+      UUID triggeredBy,
+      String reason) {
     IncidentEvent event = new IncidentEvent();
     event.setIncident(incident);
     event.setEventType("INSURER_UPDATED");
     event.setTriggeredBy(triggeredBy);
     Map<String, Object> payload = new java.util.HashMap<>();
-    payload.put("previousInsurerId", previousInsurerId != null ? previousInsurerId.toString() : null);
+    payload.put(
+        "previousInsurerId", previousInsurerId != null ? previousInsurerId.toString() : null);
     payload.put("newInsurerId", newInsurerId.toString());
     if (reason != null && !reason.isEmpty()) {
       payload.put("reason", reason);

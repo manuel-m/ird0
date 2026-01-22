@@ -72,7 +72,7 @@ public class ClaimsController {
   @PostMapping("/claims")
   public ResponseEntity<ClaimDetailDTO> createClaim(
       @Valid @RequestBody CreateClaimRequestDTO request) {
-    log.info("Creating new claim of type: {}", request.getType());
+    log.info("Creating new claim of type: {}", request.type());
     ClaimDetailDTO claim = claimsService.createClaim(request);
     return ResponseEntity.status(HttpStatus.CREATED).body(claim);
   }
@@ -82,7 +82,7 @@ public class ClaimsController {
   @PutMapping("/claims/{id}/status")
   public ResponseEntity<ClaimDetailDTO> updateStatus(
       @PathVariable UUID id, @Valid @RequestBody StatusUpdateRequestDTO request) {
-    log.info("Updating status for claim {}: {}", id, request.getStatus());
+    log.info("Updating status for claim {}: {}", id, request.status());
     ClaimDetailDTO claim = claimsService.updateStatus(id, request);
     return ResponseEntity.ok(claim);
   }
@@ -92,7 +92,7 @@ public class ClaimsController {
   @PostMapping("/claims/{id}/expert")
   public ResponseEntity<ClaimDetailDTO> assignExpert(
       @PathVariable UUID id, @Valid @RequestBody ExpertAssignmentRequestDTO request) {
-    log.info("Assigning expert {} to claim {}", request.getExpertId(), id);
+    log.info("Assigning expert {} to claim {}", request.expertId(), id);
     ClaimDetailDTO claim = claimsService.assignExpert(id, request);
     return ResponseEntity.ok(claim);
   }

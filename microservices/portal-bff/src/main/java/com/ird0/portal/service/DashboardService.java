@@ -26,12 +26,7 @@ public class DashboardService {
         incidentClient.getIncidents(null, null, null, null, null, null, 0, 1000, "createdAt,desc");
 
     if (allIncidents == null || !allIncidents.has("content")) {
-      return DashboardDTO.builder()
-          .kpis(KpiDTO.builder().build())
-          .statusDistribution(Map.of())
-          .claimsByType(Map.of())
-          .recentActivity(List.of())
-          .build();
+      return new DashboardDTO(new KpiDTO(0, 0, 0, 0), Map.of(), Map.of(), List.of());
     }
 
     JsonNode content = allIncidents.get("content");
@@ -86,30 +81,17 @@ public class DashboardService {
             incident.has("createdAt") ? Instant.parse(incident.get("createdAt").asText()) : null;
 
         recentActivity.add(
-            RecentActivityDTO.builder()
-                .eventType("CLAIM_" + status)
-                .description(
-                    "Claim " + referenceNumber + " is " + status.toLowerCase().replace("_", " "))
-                .claimReference(referenceNumber)
-                .occurredAt(createdAt)
-                .build());
+            new RecentActivityDTO(
+                "CLAIM_" + status,
+                "Claim " + referenceNumber + " is " + status.toLowerCase().replace("_", " "),
+                referenceNumber,
+                createdAt));
         activityCount++;
       }
     }
 
-    KpiDTO kpis =
-        KpiDTO.builder()
-            .totalClaims(totalClaims)
-            .pendingCount(pendingCount)
-            .inProgressCount(inProgressCount)
-            .closedThisMonth(closedThisMonth)
-            .build();
+    KpiDTO kpis = new KpiDTO(totalClaims, pendingCount, inProgressCount, closedThisMonth);
 
-    return DashboardDTO.builder()
-        .kpis(kpis)
-        .statusDistribution(statusDistribution)
-        .claimsByType(claimsByType)
-        .recentActivity(recentActivity)
-        .build();
+    return new DashboardDTO(kpis, statusDistribution, claimsByType, recentActivity);
   }
 }

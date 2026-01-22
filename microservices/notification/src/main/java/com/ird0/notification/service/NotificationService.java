@@ -22,14 +22,14 @@ public class NotificationService {
 
   @Transactional
   public Notification createNotification(WebhookRequest request) {
-    log.info("Creating notification for webhook URL: {}", request.getWebhookUrl());
+    log.info("Creating notification for webhook URL: {}", request.webhookUrl());
 
     Notification notification = new Notification();
-    notification.setWebhookUrl(request.getWebhookUrl());
-    notification.setPayload(request.getPayload());
+    notification.setWebhookUrl(request.webhookUrl());
+    notification.setPayload(request.payload());
 
     // Extract event details from payload if present
-    Map<String, Object> payload = request.getPayload();
+    Map<String, Object> payload = request.payload();
     if (payload != null) {
       if (payload.containsKey("eventType")) {
         notification.setEventType((String) payload.get("eventType"));

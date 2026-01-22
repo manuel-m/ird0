@@ -6,34 +6,20 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CreateClaimRequestDTO {
+public record CreateClaimRequestDTO(
+    @NotNull(message = "Policyholder ID is required") UUID policyholderId,
+    @NotNull(message = "Insurer ID is required") UUID insurerId,
+    @NotBlank(message = "Claim type is required") String type,
+    String description,
+    @NotNull(message = "Incident date is required") Instant incidentDate,
+    LocationDTO location,
+    BigDecimal estimatedDamage,
+    String currency) {
 
-  @NotNull(message = "Policyholder ID is required")
-  private UUID policyholderId;
-
-  @NotNull(message = "Insurer ID is required")
-  private UUID insurerId;
-
-  @NotBlank(message = "Claim type is required")
-  private String type;
-
-  private String description;
-
-  @NotNull(message = "Incident date is required")
-  private Instant incidentDate;
-
-  private LocationDTO location;
-
-  private BigDecimal estimatedDamage;
-
-  @Builder.Default private String currency = "EUR";
+  public CreateClaimRequestDTO {
+    if (currency == null) {
+      currency = "EUR";
+    }
+  }
 }

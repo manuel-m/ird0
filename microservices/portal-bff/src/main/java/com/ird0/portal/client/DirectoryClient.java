@@ -99,14 +99,13 @@ public class DirectoryClient {
     if (node == null) {
       return null;
     }
-    return ActorDTO.builder()
-        .id(node.has("id") ? UUID.fromString(node.get("id").asText()) : null)
-        .name(node.has("name") ? node.get("name").asText() : null)
-        .type(node.has("type") ? node.get("type").asText() : null)
-        .email(node.has("email") ? node.get("email").asText() : null)
-        .phone(node.has("phone") ? node.get("phone").asText() : null)
-        .address(node.has("address") ? node.get("address").asText() : null)
-        .build();
+    return new ActorDTO(
+        node.has("id") ? UUID.fromString(node.get("id").asText()) : null,
+        node.has("name") ? node.get("name").asText() : null,
+        node.has("type") ? node.get("type").asText() : null,
+        node.has("email") ? node.get("email").asText() : null,
+        node.has("phone") ? node.get("phone").asText() : null,
+        node.has("address") ? node.get("address").asText() : null);
   }
 
   private List<ActorDTO> mapToActorDTOList(JsonNode node) {
@@ -122,19 +121,19 @@ public class DirectoryClient {
   @SuppressWarnings("unused")
   private ActorDTO getPolicyholderFallback(UUID id, Throwable t) {
     log.warn("Circuit breaker fallback for getPolicyholder {}: {}", id, t.getMessage());
-    return ActorDTO.builder().id(id).name("Unknown Policyholder").build();
+    return new ActorDTO(id, "Unknown Policyholder", null, null, null, null);
   }
 
   @SuppressWarnings("unused")
   private ActorDTO getExpertFallback(UUID id, Throwable t) {
     log.warn("Circuit breaker fallback for getExpert {}: {}", id, t.getMessage());
-    return ActorDTO.builder().id(id).name("Unknown Expert").build();
+    return new ActorDTO(id, "Unknown Expert", null, null, null, null);
   }
 
   @SuppressWarnings("unused")
   private ActorDTO getInsurerFallback(UUID id, Throwable t) {
     log.warn("Circuit breaker fallback for getInsurer {}: {}", id, t.getMessage());
-    return ActorDTO.builder().id(id).name("Unknown Insurer").build();
+    return new ActorDTO(id, "Unknown Insurer", null, null, null, null);
   }
 
   @SuppressWarnings("unused")

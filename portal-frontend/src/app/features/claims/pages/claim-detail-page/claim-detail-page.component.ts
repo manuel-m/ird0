@@ -108,9 +108,9 @@ import { AssignExpertDialogComponent } from '../../components/assign-expert-dial
 
             <mat-card>
               <mat-tab-group>
-                <mat-tab label="Comments ({{ claim.comments?.length || 0 }})">
+                <mat-tab label="Comments ({{ claim.comments.length }})">
                   <div class="tab-content">
-                    @if (claim.comments?.length) {
+                    @if (claim.comments.length) {
                       @for (comment of claim.comments; track comment.id) {
                         <div class="comment-item">
                           <div class="comment-header">
@@ -151,14 +151,14 @@ import { AssignExpertDialogComponent } from '../../components/assign-expert-dial
                   </div>
                 </mat-tab>
 
-                <mat-tab label="Experts ({{ claim.expertAssignments?.length || 0 }})">
+                <mat-tab label="Experts ({{ claim.expertAssignments.length }})">
                   <div class="tab-content">
-                    @if (claim.expertAssignments?.length) {
+                    @if (claim.expertAssignments.length) {
                       @for (assignment of claim.expertAssignments; track assignment.id) {
                         <mat-card class="expert-card">
                           <mat-card-content>
                             <div class="expert-info">
-                              <strong>{{ assignment.expert?.name }}</strong>
+                              <strong>{{ assignment.expert.name }}</strong>
                               @if (assignment.scheduledDate) {
                                 <span>Scheduled: {{ assignment.scheduledDate | date:'medium' }}</span>
                               }

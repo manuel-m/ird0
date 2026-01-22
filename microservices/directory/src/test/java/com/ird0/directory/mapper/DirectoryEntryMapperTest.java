@@ -34,44 +34,44 @@ class DirectoryEntryMapperTest {
     DirectoryEntryDTO dto = mapper.toDTO(entity);
 
     assertNotNull(dto);
-    assertEquals(entity.getId(), dto.getId());
-    assertEquals(entity.getName(), dto.getName());
-    assertEquals(entity.getType(), dto.getType());
-    assertEquals(entity.getEmail(), dto.getEmail());
-    assertEquals(entity.getPhone(), dto.getPhone());
-    assertEquals(entity.getAddress(), dto.getAddress());
-    assertEquals(entity.getAdditionalInfo(), dto.getAdditionalInfo());
+    assertEquals(entity.getId(), dto.id());
+    assertEquals(entity.getName(), dto.name());
+    assertEquals(entity.getType(), dto.type());
+    assertEquals(entity.getEmail(), dto.email());
+    assertEquals(entity.getPhone(), dto.phone());
+    assertEquals(entity.getAddress(), dto.address());
+    assertEquals(entity.getAdditionalInfo(), dto.additionalInfo());
   }
 
   @Test
   void testToEntity_ConvertsDTOToEntity() {
-    DirectoryEntryDTO dto = new DirectoryEntryDTO();
-    dto.setName("Jane Smith");
-    dto.setType("family");
-    dto.setEmail("jane@example.com");
-    dto.setPhone("555-5678");
-    dto.setAddress("456 Oak Ave");
-    dto.setAdditionalInfo("Family account");
+    DirectoryEntryDTO dto =
+        new DirectoryEntryDTO(
+            null,
+            "Jane Smith",
+            "family",
+            "jane@example.com",
+            "555-5678",
+            "456 Oak Ave",
+            "Family account",
+            null);
 
     DirectoryEntry entity = mapper.toEntity(dto);
 
     assertNotNull(entity);
-    assertEquals(dto.getName(), entity.getName());
-    assertEquals(dto.getType(), entity.getType());
-    assertEquals(dto.getEmail(), entity.getEmail());
-    assertEquals(dto.getPhone(), entity.getPhone());
-    assertEquals(dto.getAddress(), entity.getAddress());
-    assertEquals(dto.getAdditionalInfo(), entity.getAdditionalInfo());
+    assertEquals(dto.name(), entity.getName());
+    assertEquals(dto.type(), entity.getType());
+    assertEquals(dto.email(), entity.getEmail());
+    assertEquals(dto.phone(), entity.getPhone());
+    assertEquals(dto.address(), entity.getAddress());
+    assertEquals(dto.additionalInfo(), entity.getAdditionalInfo());
   }
 
   @Test
   void testToEntity_WithNullId_ShouldCreateEntityWithNullId() {
-    DirectoryEntryDTO dto = new DirectoryEntryDTO();
-    dto.setId(null);
-    dto.setName("Test");
-    dto.setType("individual");
-    dto.setEmail("test@example.com");
-    dto.setPhone("555-0000");
+    DirectoryEntryDTO dto =
+        new DirectoryEntryDTO(
+            null, "Test", "individual", "test@example.com", "555-0000", null, null, null);
 
     DirectoryEntry entity = mapper.toEntity(dto);
 
@@ -88,12 +88,16 @@ class DirectoryEntryMapperTest {
     existingEntity.setEmail("original@example.com");
     existingEntity.setPhone("555-0000");
 
-    DirectoryEntryDTO updateDTO = new DirectoryEntryDTO();
-    updateDTO.setName("Updated Name");
-    updateDTO.setType("family");
-    updateDTO.setEmail("updated@example.com");
-    updateDTO.setPhone("555-9999");
-    updateDTO.setAddress("New Address");
+    DirectoryEntryDTO updateDTO =
+        new DirectoryEntryDTO(
+            null,
+            "Updated Name",
+            "family",
+            "updated@example.com",
+            "555-9999",
+            "New Address",
+            null,
+            null);
 
     mapper.updateEntityFromDTO(updateDTO, existingEntity);
 
@@ -127,8 +131,8 @@ class DirectoryEntryMapperTest {
 
     assertNotNull(dtos);
     assertEquals(2, dtos.size());
-    assertEquals(entity1.getName(), dtos.get(0).getName());
-    assertEquals(entity2.getName(), dtos.get(1).getName());
+    assertEquals(entity1.getName(), dtos.get(0).name());
+    assertEquals(entity2.getName(), dtos.get(1).name());
   }
 
   @Test
@@ -145,7 +149,7 @@ class DirectoryEntryMapperTest {
     DirectoryEntryDTO dto = mapper.toDTO(entity);
 
     assertNotNull(dto);
-    assertNull(dto.getAddress());
-    assertNull(dto.getAdditionalInfo());
+    assertNull(dto.address());
+    assertNull(dto.additionalInfo());
   }
 }

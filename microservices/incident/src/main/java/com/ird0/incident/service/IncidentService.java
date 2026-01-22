@@ -74,7 +74,8 @@ public class IncidentService {
       spec = spec.and((root, query, cb) -> cb.equal(root.get("type"), type));
     }
     if (fromDate != null) {
-      spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), fromDate));
+      spec =
+          spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), fromDate));
     }
     if (toDate != null) {
       spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("createdAt"), toDate));
@@ -87,30 +88,30 @@ public class IncidentService {
   public Incident createIncident(CreateIncidentRequest request, UUID createdBy) {
     log.info(
         "Creating incident for policyholder {} with insurer {}",
-        request.getPolicyholderId(),
-        request.getInsurerId());
+        request.policyholderId(),
+        request.insurerId());
 
     // Validate references exist in directory services
-    directoryValidationService.validatePolicyholder(request.getPolicyholderId());
-    directoryValidationService.validateInsurer(request.getInsurerId());
+    directoryValidationService.validatePolicyholder(request.policyholderId());
+    directoryValidationService.validateInsurer(request.insurerId());
 
     Incident incident = new Incident();
     incident.setReferenceNumber(referenceNumberGenerator.generate());
-    incident.setPolicyholderId(request.getPolicyholderId());
-    incident.setInsurerId(request.getInsurerId());
-    incident.setType(request.getType());
-    incident.setDescription(request.getDescription());
-    incident.setIncidentDate(request.getIncidentDate());
-    incident.setEstimatedDamage(request.getEstimatedDamage());
-    incident.setCurrency(request.getCurrency() != null ? request.getCurrency() : "EUR");
+    incident.setPolicyholderId(request.policyholderId());
+    incident.setInsurerId(request.insurerId());
+    incident.setType(request.type());
+    incident.setDescription(request.description());
+    incident.setIncidentDate(request.incidentDate());
+    incident.setEstimatedDamage(request.estimatedDamage());
+    incident.setCurrency(request.currency() != null ? request.currency() : "EUR");
     incident.setCreatedBy(createdBy);
 
-    if (request.getLocation() != null) {
+    if (request.location() != null) {
       Location location =
           new Location(
-              request.getLocation().getAddress(),
-              request.getLocation().getLatitude(),
-              request.getLocation().getLongitude());
+              request.location().address(),
+              request.location().latitude(),
+              request.location().longitude());
       incident.setLocation(location);
     }
 
@@ -137,7 +138,7 @@ public class IncidentService {
   public Incident updateStatus(UUID incidentId, StatusUpdateRequest request, UUID updatedBy) {
     Incident incident = getById(incidentId);
     IncidentStatus previousStatus = incident.getStatus();
-    IncidentStatus newStatus = request.getStatus();
+    IncidentStatus newStatus = request.status();
 
     log.info(
         "Updating incident {} status from {} to {}",
@@ -151,9 +152,9 @@ public class IncidentService {
     Map<String, Object> payload =
         Map.of(
             "reason",
-            request.getReason() != null ? request.getReason() : "",
+            request.reason() != null ? request.reason() : "",
             "qualificationDetails",
-            request.getQualificationDetails() != null ? request.getQualificationDetails() : "");
+            request.qualificationDetails() != null ? request.qualificationDetails() : "");
 
     IncidentEvent event =
         IncidentEvent.createStatusChangeEvent(
@@ -205,22 +206,22 @@ public class IncidentService {
     Incident incident = getById(incidentId);
 
     // Validate expert exists
-    directoryValidationService.validateExpert(request.getExpertId());
+    directoryValidationService.validateExpert(request.expertId());
 
     log.info(
-        "Assigning expert {} to incident {}", request.getExpertId(), incident.getReferenceNumber());
+        "Assigning expert {} to incident {}", request.expertId(), incident.getReferenceNumber());
 
     ExpertAssignment assignment = new ExpertAssignment();
-    assignment.setExpertId(request.getExpertId());
+    assignment.setExpertId(request.expertId());
     assignment.setAssignedBy(assignedBy);
-    assignment.setScheduledDate(request.getScheduledDate());
-    assignment.setNotes(request.getNotes());
+    assignment.setScheduledDate(request.scheduledDate());
+    assignment.setNotes(request.notes());
 
     incident.addExpertAssignment(assignment);
 
     // Create event
     IncidentEvent event =
-        IncidentEvent.createExpertAssignedEvent(incident, request.getExpertId(), assignedBy);
+        IncidentEvent.createExpertAssignedEvent(incident, request.expertId(), assignedBy);
     incident.addEvent(event);
 
     // If incident is QUALIFIED, transition to IN_PROGRESS
@@ -242,7 +243,7 @@ public class IncidentService {
 
     // Send notification about expert assignment
     notificationClient.ifPresent(
-        client -> client.sendExpertAssignedNotification(saved, request.getExpertId()));
+        client -> client.sendExpertAssignedNotification(saved, request.expertId()));
 
     return saved;
   }
