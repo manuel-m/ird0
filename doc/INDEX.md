@@ -8,6 +8,29 @@ Welcome to the IRD0 project documentation. This index helps you find the right d
 - [CLAUDE.md](../CLAUDE.md) - Comprehensive guide for Claude Code AI assistant
 - [USER_GUIDE.md](USER_GUIDE.md) - Operations manual for administrators
 
+## Product Requirements
+
+- [PRD.md](PRD.md) - Complete product requirements document
+  - Executive summary and business goals
+  - User personas and actors
+  - Feature inventory by domain
+  - Functional requirements (FR-xxx)
+  - Non-functional requirements
+  - API specifications summary
+  - Data models and state machine
+
+## Feature Documentation
+
+Detailed documentation for each major feature:
+
+- [Directory Management](features/directory-management.md) - CRUD operations, multi-instance pattern, CSV import
+- [SFTP Data Import](features/sftp-data-import.md) - Automated polling, change detection, batch processing
+- [Incident Lifecycle](features/incident-lifecycle.md) - State machine, transitions, event history
+- [Expert Assignment](features/expert-assignment.md) - Assignment workflow, scheduling, validation
+- [Webhook Notifications](features/webhook-notifications.md) - Dispatch, exponential backoff, retry logic
+- [Portal Dashboard](features/portal-dashboard.md) - KPIs, status charts, recent activity
+- [Claims Management UI](features/claims-management-ui.md) - List, detail, create pages
+
 ## Architecture & Design
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System design deep-dive
@@ -157,7 +180,8 @@ Welcome to the IRD0 project documentation. This index helps you find the right d
 
 ### By Role
 
-- **New Developer**: Start with [README.md](../README.md) → [CLAUDE.md](../CLAUDE.md) → [ARCHITECTURE.md](ARCHITECTURE.md)
+- **New Developer**: Start with [README.md](../README.md) → [PRD.md](PRD.md) → [ARCHITECTURE.md](ARCHITECTURE.md)
+- **Product Owner**: Start with [PRD.md](PRD.md) → [features/](features/)
 - **Operations Team**: Start with [USER_GUIDE.md](USER_GUIDE.md) → [troubleshooting.md](topics/troubleshooting.md)
 - **Security Admin**: See [vault-ssh-ca.md](topics/vault-ssh-ca.md) → [ssh-keys.md](topics/ssh-keys.md) → [configuration.md](topics/configuration.md)
 - **Database Admin**: See [database.md](topics/database.md) → [USER_GUIDE.md](USER_GUIDE.md)
@@ -166,7 +190,9 @@ Welcome to the IRD0 project documentation. This index helps you find the right d
 ### By Task
 
 - **Setting up project**: [README.md](../README.md) Quick Start section
-- **Understanding SFTP import**: [topics/sftp-import.md](topics/sftp-import.md)
+- **Understanding product features**: [PRD.md](PRD.md) → [features/](features/)
+- **Understanding incident workflow**: [features/incident-lifecycle.md](features/incident-lifecycle.md)
+- **Understanding SFTP import**: [features/sftp-data-import.md](features/sftp-data-import.md) + [topics/sftp-import.md](topics/sftp-import.md)
 - **Setting up Vault SSH CA**: [topics/vault-ssh-ca.md](topics/vault-ssh-ca.md) + [USER_GUIDE.md](USER_GUIDE.md#hashicorp-vault-integration)
 - **Managing SSH keys (static)**: [topics/ssh-keys.md](topics/ssh-keys.md)
 - **Troubleshooting database issues**: [topics/database.md](topics/database.md) + [topics/troubleshooting.md](topics/troubleshooting.md)
@@ -198,4 +224,4 @@ When updating documentation:
 - Follow the existing structure and style
 - Test all internal links after changes
 
-Last Updated: 2026-01-15
+Last Updated: 2026-01-22

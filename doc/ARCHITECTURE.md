@@ -8,8 +8,12 @@ IRD0 is an insurance platform built on a microservices architecture using Spring
 - **Directory Service** - Multi-instance REST API for managing directory entries (policyholders, experts, providers, insurers)
 - **Incident Service** - Insurance claim incident management with state machine and workflow orchestration
 - **Notification Service** - Webhook-based notification dispatch with retry logic and audit trail
+- **Portal BFF** - Backend-for-frontend aggregation layer for the Angular dashboard
 - **SFTP Server** - Secure file transfer service for exposing CSV files via SFTP protocol
 - **Data Generator Utility** - CLI tool for generating realistic test data
+- **Angular Frontend** - Claims dashboard and management UI
+
+> **For product requirements and feature specifications, see [PRD.md](PRD.md)**
 
 **Key Architectural Characteristics:**
 - Multi-instance microservice pattern (single codebase, multiple deployments)
@@ -832,6 +836,76 @@ curl -X POST http://localhost:8086/api/v1/notifications/{id}/retry
 - Allows caller to return immediately
 - Requires job orchestration (single instance execution)
 
+## Portal BFF Architecture
+
+### Overview
+
+The Portal BFF (Backend-for-Frontend) provides an aggregation layer that combines data from multiple backend services, optimized for the Angular frontend. It resolves actor IDs to names and provides dashboard KPIs.
+
+**Service Details:**
+- Port: 8090 (host), 8080 (internal)
+- API Base Path: `/api/portal/v1`
+- Pattern: Aggregation, name resolution, circuit breaker protection
+
+> **For detailed feature documentation, see [features/portal-dashboard.md](features/portal-dashboard.md) and [features/claims-management-ui.md](features/claims-management-ui.md)**
+
+### Aggregation Pattern
+
+```
+Angular Frontend
+       │
+       │ GET /api/portal/v1/claims/{id}
+       ▼
+┌──────────────────┐
+│   Portal BFF     │
+│     :8090        │
+└────────┬─────────┘
+         │
+    ┌────┴────┬────────────┬────────────┐
+    │         │            │            │
+    ▼         ▼            ▼            ▼
+┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
+│Incident│ │Policy- │ │Insurers│ │Experts │
+│Service │ │holders │ │ :8084  │ │ :8082  │
+│ :8085  │ │ :8081  │ │        │ │        │
+└────────┘ └────────┘ └────────┘ └────────┘
+```
+
+### Key Capabilities
+
+**Dashboard Aggregation:**
+- Total claims, pending, in-progress, closed this month
+- Status distribution (count per status)
+- Claims by type (count per incident type)
+- Recent activity (last 10 events)
+
+**Name Resolution:**
+- Converts policyholderId → policyholderName
+- Converts insurerId → insurerName
+- Converts expertId → expertName
+- Fallback: Returns "Unknown" if directory service unavailable
+
+**Circuit Breaker Protection:**
+- Resilience4j for all inter-service calls
+- Sliding window: 10 calls
+- Failure threshold: 50%
+- Open state: 30 seconds
+
+### Design Rationale
+
+**Why BFF Pattern?**
+
+**Advantages:**
+- **Reduced Round Trips**: Frontend makes one call instead of multiple
+- **Optimized Payload**: Response shaped for frontend needs
+- **Backend Flexibility**: Backend services can evolve independently
+- **Caching**: BFF can cache directory lookups
+
+**Trade-offs:**
+- **Additional Service**: One more service to manage
+- **Coupling**: BFF changes needed for new frontend requirements
+- **Latency**: Extra hop between frontend and backend services
+
 ## Vault SSH Certificate Authority Architecture
 
 ### Overview
@@ -1313,11 +1387,22 @@ public interface DirectoryEntryMapper {
 
 ## Related Documentation
 
+### Product & Features
+
+- [PRD.md](PRD.md) - Product requirements document with feature inventory
+- [features/directory-management.md](features/directory-management.md) - Directory CRUD and CSV import
+- [features/incident-lifecycle.md](features/incident-lifecycle.md) - Incident state machine details
+- [features/webhook-notifications.md](features/webhook-notifications.md) - Notification dispatch and retry
+- [features/sftp-data-import.md](features/sftp-data-import.md) - SFTP polling and change detection
+- [features/portal-dashboard.md](features/portal-dashboard.md) - Dashboard KPIs and aggregation
+- [features/claims-management-ui.md](features/claims-management-ui.md) - Frontend claims pages
+
 ### Service-Specific Documentation
 
 - [microservices/directory/CLAUDE.md](../microservices/directory/CLAUDE.md) - Directory Service implementation and usage
 - [microservices/incident/CLAUDE.md](../microservices/incident/CLAUDE.md) - Incident Service implementation and usage
 - [microservices/notification/CLAUDE.md](../microservices/notification/CLAUDE.md) - Notification Service implementation and usage
+- [microservices/portal/CLAUDE.md](../microservices/portal/CLAUDE.md) - Portal BFF implementation and usage
 - [microservices/sftp-server/CLAUDE.md](../microservices/sftp-server/CLAUDE.md) - SFTP Server implementation and usage
 - [utilities/directory-data-generator/CLAUDE.md](../utilities/directory-data-generator/CLAUDE.md) - Data Generator usage
 

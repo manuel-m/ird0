@@ -12,7 +12,8 @@
       "Bash(pnpm run build:*)",
       "Bash(docker ps:*)",
       "Bash(curl:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(wc:*)"
     ]
   }
 }
