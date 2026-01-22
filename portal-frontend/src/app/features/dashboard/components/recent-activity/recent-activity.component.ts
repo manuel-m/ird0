@@ -3,14 +3,13 @@ import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import { RouterLink } from '@angular/router';
 import { RecentActivity } from '../../../../core/models/dashboard.model';
 import { DateAgoPipe } from '../../../../shared/pipes/date-ago.pipe';
 
 @Component({
   selector: 'app-recent-activity',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatListModule, RouterLink, DateAgoPipe],
+  imports: [CommonModule, MatCardModule, MatIconModule, MatListModule, DateAgoPipe],
   template: `
     <mat-card>
       <mat-card-header>

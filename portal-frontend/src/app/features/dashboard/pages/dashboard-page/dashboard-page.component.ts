@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { RouterLink } from '@angular/router';
 import { DashboardService } from '../../services/dashboard.service';
 import { KpiCardsComponent } from '../../components/kpi-cards/kpi-cards.component';
 import { StatusChartComponent } from '../../components/status-chart/status-chart.component';
@@ -17,7 +16,6 @@ import { RecentActivityComponent } from '../../components/recent-activity/recent
     MatCardModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    RouterLink,
     KpiCardsComponent,
     StatusChartComponent,
     RecentActivityComponent
