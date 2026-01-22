@@ -35,4 +35,4 @@ keys/*
 # Environment files with secrets
 .env
 
-.idea
+.idea/
