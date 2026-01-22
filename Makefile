@@ -95,10 +95,10 @@ start-rest:
 	docker compose -p $(PROJECT_NAME) up -d
 
 java-prettier:
-	./mvnw spotless:apply -f microservices/incident/pom.xm
+	./mvnw spotless:apply
 
 java-verify:
-	./mvnw clean verify
+	./mvnw clean compile test verify
 
 
 test-data-build:

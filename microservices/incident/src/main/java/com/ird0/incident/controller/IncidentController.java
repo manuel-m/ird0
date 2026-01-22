@@ -57,7 +57,7 @@ public class IncidentController {
       @Valid @RequestBody CreateIncidentRequest request,
       @RequestParam(required = false) UUID createdBy) {
     // In a real app, createdBy would come from authentication context
-    UUID userId = createdBy != null ? createdBy : request.getPolicyholderId();
+    UUID userId = createdBy != null ? createdBy : request.policyholderId();
     Incident incident = incidentService.createIncident(request, userId);
     return ResponseEntity.status(HttpStatus.CREATED).body(incidentMapper.toResponse(incident));
   }
@@ -122,7 +122,7 @@ public class IncidentController {
     // In a real app, updatedBy would come from authentication context
     UUID userId = updatedBy != null ? updatedBy : UUID.randomUUID();
     Incident incident =
-        incidentService.updateInsurer(id, request.getInsurerId(), request.getReason(), userId);
+        incidentService.updateInsurer(id, request.insurerId(), request.reason(), userId);
     return ResponseEntity.ok(incidentMapper.toResponse(incident));
   }
 
@@ -145,8 +145,7 @@ public class IncidentController {
   public ResponseEntity<IncidentResponse> addComment(
       @PathVariable UUID id, @Valid @RequestBody CommentRequest request) {
     Incident incident =
-        incidentService.addComment(
-            id, request.getContent(), request.getAuthorId(), request.getAuthorType());
+        incidentService.addComment(id, request.content(), request.authorId(), request.authorType());
     return ResponseEntity.ok(incidentMapper.toResponse(incident));
   }
 

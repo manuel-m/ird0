@@ -22,11 +22,9 @@ class DirectoryEntryDTOTest {
 
   @Test
   void testValidDTO_ShouldPassValidation() {
-    DirectoryEntryDTO dto = new DirectoryEntryDTO();
-    dto.setName("John Doe");
-    dto.setType("individual");
-    dto.setEmail("john@example.com");
-    dto.setPhone("555-1234");
+    DirectoryEntryDTO dto =
+        new DirectoryEntryDTO(
+            null, "John Doe", "individual", "john@example.com", "555-1234", null, null, null);
 
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 
@@ -35,10 +33,9 @@ class DirectoryEntryDTOTest {
 
   @Test
   void testMissingName_ShouldFailValidation() {
-    DirectoryEntryDTO dto = new DirectoryEntryDTO();
-    dto.setType("individual");
-    dto.setEmail("test@example.com");
-    dto.setPhone("555-1234");
+    DirectoryEntryDTO dto =
+        new DirectoryEntryDTO(
+            null, null, "individual", "test@example.com", "555-1234", null, null, null);
 
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 
@@ -50,11 +47,9 @@ class DirectoryEntryDTOTest {
 
   @Test
   void testBlankName_ShouldFailValidation() {
-    DirectoryEntryDTO dto = new DirectoryEntryDTO();
-    dto.setName("   ");
-    dto.setType("individual");
-    dto.setEmail("test@example.com");
-    dto.setPhone("555-1234");
+    DirectoryEntryDTO dto =
+        new DirectoryEntryDTO(
+            null, "   ", "individual", "test@example.com", "555-1234", null, null, null);
 
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 
@@ -64,10 +59,8 @@ class DirectoryEntryDTOTest {
 
   @Test
   void testMissingEmail_ShouldFailValidation() {
-    DirectoryEntryDTO dto = new DirectoryEntryDTO();
-    dto.setName("John Doe");
-    dto.setType("individual");
-    dto.setPhone("555-1234");
+    DirectoryEntryDTO dto =
+        new DirectoryEntryDTO(null, "John Doe", "individual", null, "555-1234", null, null, null);
 
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 
@@ -77,11 +70,9 @@ class DirectoryEntryDTOTest {
 
   @Test
   void testInvalidEmailFormat_ShouldFailValidation() {
-    DirectoryEntryDTO dto = new DirectoryEntryDTO();
-    dto.setName("John Doe");
-    dto.setType("individual");
-    dto.setEmail("not-an-email");
-    dto.setPhone("555-1234");
+    DirectoryEntryDTO dto =
+        new DirectoryEntryDTO(
+            null, "John Doe", "individual", "not-an-email", "555-1234", null, null, null);
 
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 
@@ -97,10 +88,9 @@ class DirectoryEntryDTOTest {
 
   @Test
   void testMissingPhone_ShouldFailValidation() {
-    DirectoryEntryDTO dto = new DirectoryEntryDTO();
-    dto.setName("John Doe");
-    dto.setType("individual");
-    dto.setEmail("john@example.com");
+    DirectoryEntryDTO dto =
+        new DirectoryEntryDTO(
+            null, "John Doe", "individual", "john@example.com", null, null, null, null);
 
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 
@@ -110,13 +100,9 @@ class DirectoryEntryDTOTest {
 
   @Test
   void testOptionalFields_CanBeNull() {
-    DirectoryEntryDTO dto = new DirectoryEntryDTO();
-    dto.setName("John Doe");
-    dto.setType("individual");
-    dto.setEmail("john@example.com");
-    dto.setPhone("555-1234");
-    dto.setAddress(null);
-    dto.setAdditionalInfo(null);
+    DirectoryEntryDTO dto =
+        new DirectoryEntryDTO(
+            null, "John Doe", "individual", "john@example.com", "555-1234", null, null, null);
 
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 
@@ -125,13 +111,16 @@ class DirectoryEntryDTOTest {
 
   @Test
   void testAllFieldsProvided_ShouldPassValidation() {
-    DirectoryEntryDTO dto = new DirectoryEntryDTO();
-    dto.setName("John Doe");
-    dto.setType("individual");
-    dto.setEmail("john@example.com");
-    dto.setPhone("555-1234");
-    dto.setAddress("123 Main St");
-    dto.setAdditionalInfo("Test account");
+    DirectoryEntryDTO dto =
+        new DirectoryEntryDTO(
+            null,
+            "John Doe",
+            "individual",
+            "john@example.com",
+            "555-1234",
+            "123 Main St",
+            "Test account",
+            null);
 
     Set<ConstraintViolation<DirectoryEntryDTO>> violations = validator.validate(dto);
 

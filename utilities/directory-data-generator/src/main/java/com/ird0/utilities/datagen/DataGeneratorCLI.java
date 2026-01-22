@@ -16,9 +16,9 @@ import picocli.CommandLine.Parameters;
 /**
  * CLI utility to generate fake directory data as CSV.
  *
- * <p>Usage: java -jar directory-data-generator.jar java -jar directory-data-generator.jar 500
- * java -jar directory-data-generator.jar 100 -o custom-output.csv java -jar
- * directory-data-generator.jar 100 -e INSURER
+ * <p>Usage: java -jar directory-data-generator.jar java -jar directory-data-generator.jar 500 java
+ * -jar directory-data-generator.jar 100 -o custom-output.csv java -jar directory-data-generator.jar
+ * 100 -e INSURER
  */
 @Slf4j
 @Command(

@@ -76,27 +76,27 @@ public class ClaimsAggregationService {
 
   public ClaimDetailDTO createClaim(CreateClaimRequestDTO request) {
     // Validate policyholder and insurer exist
-    ActorDTO policyholder = directoryClient.getPolicyholder(request.getPolicyholderId());
-    ActorDTO insurer = directoryClient.getInsurer(request.getInsurerId());
+    ActorDTO policyholder = directoryClient.getPolicyholder(request.policyholderId());
+    ActorDTO insurer = directoryClient.getInsurer(request.insurerId());
 
     if (policyholder == null || insurer == null) {
       throw new IllegalArgumentException("Invalid policyholder or insurer ID");
     }
 
     Map<String, Object> incidentRequest = new HashMap<>();
-    incidentRequest.put("policyholderId", request.getPolicyholderId().toString());
-    incidentRequest.put("insurerId", request.getInsurerId().toString());
-    incidentRequest.put("type", request.getType());
-    incidentRequest.put("description", request.getDescription());
-    incidentRequest.put("incidentDate", request.getIncidentDate().toString());
-    incidentRequest.put("estimatedDamage", request.getEstimatedDamage());
-    incidentRequest.put("currency", request.getCurrency());
+    incidentRequest.put("policyholderId", request.policyholderId().toString());
+    incidentRequest.put("insurerId", request.insurerId().toString());
+    incidentRequest.put("type", request.type());
+    incidentRequest.put("description", request.description());
+    incidentRequest.put("incidentDate", request.incidentDate().toString());
+    incidentRequest.put("estimatedDamage", request.estimatedDamage());
+    incidentRequest.put("currency", request.currency());
 
-    if (request.getLocation() != null) {
+    if (request.location() != null) {
       Map<String, Object> location = new HashMap<>();
-      location.put("address", request.getLocation().getAddress());
-      location.put("latitude", request.getLocation().getLatitude());
-      location.put("longitude", request.getLocation().getLongitude());
+      location.put("address", request.location().address());
+      location.put("latitude", request.location().latitude());
+      location.put("longitude", request.location().longitude());
       incidentRequest.put("location", location);
     }
 
@@ -106,9 +106,9 @@ public class ClaimsAggregationService {
 
   public ClaimDetailDTO updateStatus(UUID id, StatusUpdateRequestDTO request) {
     Map<String, Object> statusRequest = new HashMap<>();
-    statusRequest.put("status", request.getStatus());
-    if (request.getReason() != null) {
-      statusRequest.put("reason", request.getReason());
+    statusRequest.put("status", request.status());
+    if (request.reason() != null) {
+      statusRequest.put("reason", request.reason());
     }
 
     JsonNode response = incidentClient.updateStatus(id, statusRequest);
@@ -117,18 +117,18 @@ public class ClaimsAggregationService {
 
   public ClaimDetailDTO assignExpert(UUID id, ExpertAssignmentRequestDTO request) {
     // Validate expert exists
-    ActorDTO expert = directoryClient.getExpert(request.getExpertId());
+    ActorDTO expert = directoryClient.getExpert(request.expertId());
     if (expert == null) {
       throw new IllegalArgumentException("Invalid expert ID");
     }
 
     Map<String, Object> assignmentRequest = new HashMap<>();
-    assignmentRequest.put("expertId", request.getExpertId().toString());
-    if (request.getScheduledDate() != null) {
-      assignmentRequest.put("scheduledDate", request.getScheduledDate().toString());
+    assignmentRequest.put("expertId", request.expertId().toString());
+    if (request.scheduledDate() != null) {
+      assignmentRequest.put("scheduledDate", request.scheduledDate().toString());
     }
-    if (request.getNotes() != null) {
-      assignmentRequest.put("notes", request.getNotes());
+    if (request.notes() != null) {
+      assignmentRequest.put("notes", request.notes());
     }
 
     JsonNode response = incidentClient.assignExpert(id, assignmentRequest);
@@ -137,9 +137,9 @@ public class ClaimsAggregationService {
 
   public ClaimDetailDTO addComment(UUID id, CommentRequestDTO request) {
     Map<String, Object> commentRequest = new HashMap<>();
-    commentRequest.put("content", request.getContent());
-    commentRequest.put("authorId", request.getAuthorId().toString());
-    commentRequest.put("authorType", request.getAuthorType());
+    commentRequest.put("content", request.content());
+    commentRequest.put("authorId", request.authorId().toString());
+    commentRequest.put("authorType", request.authorType());
 
     JsonNode response = incidentClient.addComment(id, commentRequest);
     return mapToClaimDetail(response);
@@ -197,37 +197,30 @@ public class ClaimsAggregationService {
     if (policyholderId != null) {
       ActorDTO policyholder = directoryClient.getPolicyholder(policyholderId);
       if (policyholder != null) {
-        policyholderName = policyholder.getName();
+        policyholderName = policyholder.name();
       }
     }
 
     if (insurerId != null) {
       ActorDTO insurer = directoryClient.getInsurer(insurerId);
       if (insurer != null) {
-        insurerName = insurer.getName();
+        insurerName = insurer.name();
       }
     }
 
-    return ClaimSummaryDTO.builder()
-        .id(incident.has("id") ? UUID.fromString(incident.get("id").asText()) : null)
-        .referenceNumber(
-            incident.has("referenceNumber") ? incident.get("referenceNumber").asText() : null)
-        .status(incident.has("status") ? incident.get("status").asText() : null)
-        .type(incident.has("type") ? incident.get("type").asText() : null)
-        .policyholderName(policyholderName)
-        .insurerName(insurerName)
-        .estimatedDamage(
-            incident.has("estimatedDamage")
-                ? new BigDecimal(incident.get("estimatedDamage").asText())
-                : null)
-        .currency(incident.has("currency") ? incident.get("currency").asText() : null)
-        .incidentDate(
-            incident.has("incidentDate")
-                ? Instant.parse(incident.get("incidentDate").asText())
-                : null)
-        .createdAt(
-            incident.has("createdAt") ? Instant.parse(incident.get("createdAt").asText()) : null)
-        .build();
+    return new ClaimSummaryDTO(
+        incident.has("id") ? UUID.fromString(incident.get("id").asText()) : null,
+        incident.has("referenceNumber") ? incident.get("referenceNumber").asText() : null,
+        incident.has("status") ? incident.get("status").asText() : null,
+        incident.has("type") ? incident.get("type").asText() : null,
+        policyholderName,
+        insurerName,
+        incident.has("estimatedDamage")
+            ? new BigDecimal(incident.get("estimatedDamage").asText())
+            : null,
+        incident.has("currency") ? incident.get("currency").asText() : null,
+        incident.has("incidentDate") ? Instant.parse(incident.get("incidentDate").asText()) : null,
+        incident.has("createdAt") ? Instant.parse(incident.get("createdAt").asText()) : null);
   }
 
   private ClaimDetailDTO mapToClaimDetail(JsonNode incident) {
@@ -266,41 +259,32 @@ public class ClaimsAggregationService {
     if (incident.has("location") && !incident.get("location").isNull()) {
       JsonNode locNode = incident.get("location");
       location =
-          LocationDTO.builder()
-              .address(locNode.has("address") ? locNode.get("address").asText() : null)
-              .latitude(locNode.has("latitude") ? locNode.get("latitude").asDouble() : null)
-              .longitude(locNode.has("longitude") ? locNode.get("longitude").asDouble() : null)
-              .build();
+          new LocationDTO(
+              locNode.has("address") ? locNode.get("address").asText() : null,
+              locNode.has("latitude") ? locNode.get("latitude").asDouble() : null,
+              locNode.has("longitude") ? locNode.get("longitude").asDouble() : null);
     }
 
-    return ClaimDetailDTO.builder()
-        .id(incident.has("id") ? UUID.fromString(incident.get("id").asText()) : null)
-        .referenceNumber(
-            incident.has("referenceNumber") ? incident.get("referenceNumber").asText() : null)
-        .status(status)
-        .availableTransitions(availableTransitions)
-        .type(incident.has("type") ? incident.get("type").asText() : null)
-        .description(incident.has("description") ? incident.get("description").asText() : null)
-        .incidentDate(
-            incident.has("incidentDate")
-                ? Instant.parse(incident.get("incidentDate").asText())
-                : null)
-        .estimatedDamage(
-            incident.has("estimatedDamage") && !incident.get("estimatedDamage").isNull()
-                ? new BigDecimal(incident.get("estimatedDamage").asText())
-                : null)
-        .currency(incident.has("currency") ? incident.get("currency").asText() : null)
-        .location(location)
-        .policyholder(policyholder)
-        .insurer(insurer)
-        .expertAssignments(expertAssignments)
-        .comments(comments)
-        .history(List.of()) // History is fetched separately
-        .createdAt(
-            incident.has("createdAt") ? Instant.parse(incident.get("createdAt").asText()) : null)
-        .updatedAt(
-            incident.has("updatedAt") ? Instant.parse(incident.get("updatedAt").asText()) : null)
-        .build();
+    return new ClaimDetailDTO(
+        incident.has("id") ? UUID.fromString(incident.get("id").asText()) : null,
+        incident.has("referenceNumber") ? incident.get("referenceNumber").asText() : null,
+        status,
+        availableTransitions,
+        incident.has("type") ? incident.get("type").asText() : null,
+        incident.has("description") ? incident.get("description").asText() : null,
+        incident.has("incidentDate") ? Instant.parse(incident.get("incidentDate").asText()) : null,
+        incident.has("estimatedDamage") && !incident.get("estimatedDamage").isNull()
+            ? new BigDecimal(incident.get("estimatedDamage").asText())
+            : null,
+        incident.has("currency") ? incident.get("currency").asText() : null,
+        location,
+        policyholder,
+        insurer,
+        expertAssignments,
+        comments,
+        List.of(), // History is fetched separately
+        incident.has("createdAt") ? Instant.parse(incident.get("createdAt").asText()) : null,
+        incident.has("updatedAt") ? Instant.parse(incident.get("updatedAt").asText()) : null);
   }
 
   private ExpertAssignmentDTO mapToExpertAssignment(JsonNode assignment) {
@@ -308,45 +292,35 @@ public class ClaimsAggregationService {
         assignment.has("expertId") ? UUID.fromString(assignment.get("expertId").asText()) : null;
     ActorDTO expert = expertId != null ? directoryClient.getExpert(expertId) : null;
 
-    return ExpertAssignmentDTO.builder()
-        .id(assignment.has("id") ? UUID.fromString(assignment.get("id").asText()) : null)
-        .expert(expert)
-        .scheduledDate(
-            assignment.has("scheduledDate")
-                ? Instant.parse(assignment.get("scheduledDate").asText())
-                : null)
-        .notes(assignment.has("notes") ? assignment.get("notes").asText() : null)
-        .assignedAt(
-            assignment.has("assignedAt")
-                ? Instant.parse(assignment.get("assignedAt").asText())
-                : null)
-        .build();
+    return new ExpertAssignmentDTO(
+        assignment.has("id") ? UUID.fromString(assignment.get("id").asText()) : null,
+        expert,
+        assignment.has("scheduledDate")
+            ? Instant.parse(assignment.get("scheduledDate").asText())
+            : null,
+        assignment.has("notes") ? assignment.get("notes").asText() : null,
+        assignment.has("assignedAt") ? Instant.parse(assignment.get("assignedAt").asText()) : null);
   }
 
   private CommentDTO mapToCommentDTO(JsonNode comment) {
-    return CommentDTO.builder()
-        .id(comment.has("id") ? UUID.fromString(comment.get("id").asText()) : null)
-        .content(comment.has("content") ? comment.get("content").asText() : null)
-        .authorId(
-            comment.has("authorId") ? UUID.fromString(comment.get("authorId").asText()) : null)
-        .authorType(comment.has("authorType") ? comment.get("authorType").asText() : null)
-        .authorName(comment.has("authorName") ? comment.get("authorName").asText() : null)
-        .createdAt(
-            comment.has("createdAt") ? Instant.parse(comment.get("createdAt").asText()) : null)
-        .build();
+    return new CommentDTO(
+        comment.has("id") ? UUID.fromString(comment.get("id").asText()) : null,
+        comment.has("content") ? comment.get("content").asText() : null,
+        comment.has("authorId") ? UUID.fromString(comment.get("authorId").asText()) : null,
+        comment.has("authorType") ? comment.get("authorType").asText() : null,
+        comment.has("authorName") ? comment.get("authorName").asText() : null,
+        comment.has("createdAt") ? Instant.parse(comment.get("createdAt").asText()) : null);
   }
 
   private EventDTO mapToEventDTO(JsonNode event) {
-    return EventDTO.builder()
-        .id(event.has("id") ? UUID.fromString(event.get("id").asText()) : null)
-        .eventType(event.has("eventType") ? event.get("eventType").asText() : null)
-        .description(event.has("description") ? event.get("description").asText() : null)
-        .oldValue(event.has("oldValue") ? event.get("oldValue").asText() : null)
-        .newValue(event.has("newValue") ? event.get("newValue").asText() : null)
-        .actorId(event.has("actorId") ? UUID.fromString(event.get("actorId").asText()) : null)
-        .actorName(event.has("actorName") ? event.get("actorName").asText() : null)
-        .occurredAt(
-            event.has("occurredAt") ? Instant.parse(event.get("occurredAt").asText()) : null)
-        .build();
+    return new EventDTO(
+        event.has("id") ? UUID.fromString(event.get("id").asText()) : null,
+        event.has("eventType") ? event.get("eventType").asText() : null,
+        event.has("description") ? event.get("description").asText() : null,
+        event.has("oldValue") ? event.get("oldValue").asText() : null,
+        event.has("newValue") ? event.get("newValue").asText() : null,
+        event.has("actorId") ? UUID.fromString(event.get("actorId").asText()) : null,
+        event.has("actorName") ? event.get("actorName").asText() : null,
+        event.has("occurredAt") ? Instant.parse(event.get("occurredAt").asText()) : null);
   }
 }

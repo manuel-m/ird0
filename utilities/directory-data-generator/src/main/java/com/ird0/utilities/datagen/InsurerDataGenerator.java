@@ -97,10 +97,7 @@ public class InsurerDataGenerator {
   }
 
   private String generateSlug(String name) {
-    return name.toLowerCase()
-        .replace(" ", "-")
-        .replaceAll("[^a-z0-9-]", "")
-        .replaceAll("-+", "-");
+    return name.toLowerCase().replace(" ", "-").replaceAll("[^a-z0-9-]", "").replaceAll("-+", "-");
   }
 
   private String generateEmail(String slug) {
@@ -109,8 +106,7 @@ public class InsurerDataGenerator {
 
   private String generateTollFreePhone() {
     String prefix = selectRandom(TOLL_FREE_PREFIXES);
-    return String.format(
-        "1-%s-%03d-%04d", prefix, random.nextInt(1000), random.nextInt(10000));
+    return String.format("1-%s-%03d-%04d", prefix, random.nextInt(1000), random.nextInt(10000));
   }
 
   private String generateBusinessAddress() {
@@ -136,8 +132,7 @@ public class InsurerDataGenerator {
       case TYPE_LIFE ->
           String.format("Founded: %d, Rating: %s", random.nextInt(100) + 1920, rating);
       case TYPE_PROPERTY ->
-          String.format(
-              "Annual claims: %d, Rating: %s", (random.nextInt(100) + 1) * 1000, rating);
+          String.format("Annual claims: %d, Rating: %s", (random.nextInt(100) + 1) * 1000, rating);
       case TYPE_MULTI_LINE ->
           String.format(
               "Lines: Health, Auto, Life, Employees: %d", (random.nextInt(50) + 1) * 1000);

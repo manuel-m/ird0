@@ -108,19 +108,18 @@ class IncidentServiceTest {
 
   @Test
   void createIncident_ValidRequest_CreatesIncident() {
-    CreateIncidentRequest request = new CreateIncidentRequest();
-    request.setPolicyholderId(testPolicyholderId);
-    request.setInsurerId(testInsurerId);
-    request.setType("VEHICLE_ACCIDENT");
-    request.setDescription("Car accident");
-    request.setIncidentDate(Instant.now());
-    request.setEstimatedDamage(new BigDecimal("5000.00"));
+    LocationDTO location = new LocationDTO("123 Main St", 48.8566, 2.3522);
 
-    LocationDTO location = new LocationDTO();
-    location.setAddress("123 Main St");
-    location.setLatitude(48.8566);
-    location.setLongitude(2.3522);
-    request.setLocation(location);
+    CreateIncidentRequest request =
+        new CreateIncidentRequest(
+            testPolicyholderId,
+            testInsurerId,
+            "VEHICLE_ACCIDENT",
+            "Car accident",
+            Instant.now(),
+            location,
+            new BigDecimal("5000.00"),
+            null);
 
     when(referenceNumberGenerator.generate()).thenReturn("INC-2026-000001");
     doNothing().when(directoryValidationService).validatePolicyholder(any());
@@ -150,9 +149,8 @@ class IncidentServiceTest {
     when(incidentRepository.save(any(Incident.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    StatusUpdateRequest request = new StatusUpdateRequest();
-    request.setStatus(IncidentStatus.UNDER_REVIEW);
-    request.setReason("Starting review process");
+    StatusUpdateRequest request =
+        new StatusUpdateRequest(IncidentStatus.UNDER_REVIEW, "Starting review process", null);
 
     Incident result = incidentService.updateStatus(testIncidentId, request, UUID.randomUUID());
 

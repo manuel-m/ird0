@@ -90,20 +90,19 @@ public class NotificationController {
   }
 
   private NotificationResponse toResponse(Notification notification) {
-    NotificationResponse response = new NotificationResponse();
-    response.setId(notification.getId());
-    response.setEventId(notification.getEventId());
-    response.setEventType(notification.getEventType());
-    response.setIncidentId(notification.getIncidentId());
-    response.setWebhookUrl(notification.getWebhookUrl());
-    response.setStatus(notification.getStatus());
-    response.setPayload(notification.getPayload());
-    response.setSentAt(notification.getSentAt());
-    response.setResponseCode(notification.getResponseCode());
-    response.setRetryCount(notification.getRetryCount());
-    response.setNextRetryAt(notification.getNextRetryAt());
-    response.setFailureReason(notification.getFailureReason());
-    response.setCreatedAt(notification.getCreatedAt());
-    return response;
+    return new NotificationResponse(
+        notification.getId(),
+        notification.getEventId(),
+        notification.getEventType(),
+        notification.getIncidentId(),
+        notification.getWebhookUrl(),
+        notification.getStatus(),
+        notification.getPayload(),
+        notification.getSentAt(),
+        notification.getResponseCode(),
+        notification.getRetryCount(),
+        notification.getNextRetryAt(),
+        notification.getFailureReason(),
+        notification.getCreatedAt());
   }
 }
