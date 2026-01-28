@@ -8,6 +8,16 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/ird0}
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/ird0/protocol/openid-connect/certs}
+      client:
+        registration:
+          portal-bff:
+            client-id: ird0-portal-bff
+            client-secret: ${KEYCLOAK_CLIENT_SECRET:portal-bff-secret}
+            authorization-grant-type: client_credentials
+            scope: openid
+        provider:
+          portal-bff:
+            token-uri: ${KEYCLOAK_TOKEN_URI:http://localhost:8180/realms/ird0/protocol/openid-connect/token}
 
 openapi:
   server:
