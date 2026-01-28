@@ -150,6 +150,8 @@ services:
     depends_on:
       incident-svc:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVICE_INTERNAL_PORT}/actuator/health"]
       interval: 30s
@@ -163,6 +165,8 @@ services:
       - POLICYHOLDERS_SERVICE_URL=http://${POLICYHOLDERS_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}
       - EXPERTS_SERVICE_URL=http://${EXPERTS_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}
       - INSURERS_SERVICE_URL=http://${INSURERS_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}
+      - KEYCLOAK_ISSUER_URI=http://localhost:${KEYCLOAK_HOST_PORT}/realms/ird0
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/ird0/protocol/openid-connect/certs
       # Swagger aggregation - construct URLs from existing port variables (DRY)
       - SWAGGER_HOST=localhost
       - SWAGGER_PORTAL_BFF_PORT=${PORTAL_BFF_HOST_PORT}

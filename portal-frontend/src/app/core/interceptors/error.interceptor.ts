@@ -1,7 +1,11 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
+import { AuthService } from '../services/auth.service';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  const authService = inject(AuthService);
+
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       let errorMessage = 'An unexpected error occurred';
@@ -14,7 +18,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         if (error.status === 0) {
           errorMessage = 'Unable to connect to the server. Please check your connection.';
         } else if (error.status === 401) {
-          errorMessage = 'Unauthorized. Please log in again.';
+          // Trigger re-authentication on 401
+          authService.login();
+          errorMessage = 'Session expired. Redirecting to login...';
         } else if (error.status === 403) {
           errorMessage = 'Access denied. You do not have permission to perform this action.';
         } else if (error.status === 404) {

@@ -1,6 +1,14 @@
 server:
   port: ${SERVER_PORT:8090}
 
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/ird0}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/ird0/protocol/openid-connect/certs}
+
 openapi:
   server:
     url: ${OPENAPI_SERVER_URL:}
