@@ -415,15 +415,15 @@ Key changes:
 ┌─────────────────────────────────────────────────────────┐
 │  mat-sidenav                                             │
 │  ┌─────────────────────────────────────────────────────┐ │
-│  │  ┌──┐                                               │ │
-│  │  │JD│  John Doe                                     │ │
-│  │  └──┘  john.doe@example.com                         │ │
+│  │  🏢  Insurance Portal                               │ │
 │  ├─────────────────────────────────────────────────────┤ │
 │  │  📊  Dashboard                                       │ │
 │  │  📋  Claims                                          │ │
 │  ├─────────────────────────────────────────────────────┤ │
-│  │                                                      │ │
-│  │  [Logout]                                            │ │
+│  │  ┌──┐                                               │ │
+│  │  │JD│  John Doe              ▼                      │ │
+│  │  └──┘  john.doe@example.com                         │ │
+│  │        └── Logout menu                              │ │
 │  └─────────────────────────────────────────────────────┘ │
 │                                                          │
 │  mat-sidenav-content                                     │
@@ -434,9 +434,9 @@ Key changes:
 ```
 
 Changes to `AppComponent`:
-- Sidenav header shows authenticated user name and email (from `AuthService.userProfile`)
-- Avatar placeholder with user initials
-- Logout button in sidenav footer calls `AuthService.logout()`
+- Sidenav footer shows authenticated user name and email with dropdown menu (from `AuthService.userProfile`)
+- Avatar placeholder with user initials (computed from given_name/family_name or username)
+- Logout option in user dropdown menu calls `AuthService.logout()`
 - Sidenav and content only rendered when authenticated
 
 ### Error Interceptor Update
