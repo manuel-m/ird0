@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 import { OAuthService, AuthConfig } from 'angular-oauth2-oidc';
 import { environment } from '../../../environments/environment';
 
@@ -23,6 +23,10 @@ export class AuthService {
   readonly userName = computed(() => {
     const profile = this._userProfile();
     return profile?.name || profile?.preferred_username || 'Unknown User';
+  });
+  readonly isManager = computed(() => {
+    if (!this._isAuthenticated()) return false;
+    return this.hasRole('claims-manager') || this.hasRole('claims-admin');
   });
 
   constructor(private oauthService: OAuthService) {}

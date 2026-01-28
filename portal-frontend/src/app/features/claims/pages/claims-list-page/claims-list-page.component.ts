@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -20,6 +20,7 @@ import {
   CLAIM_STATUS_LABELS,
   CLAIM_TYPE_LABELS
 } from '../../../../core/models/claim.model';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-claims-list-page',
@@ -44,10 +45,12 @@ import {
     <div class="page-container">
       <div class="page-header">
         <h1>Claims</h1>
-        <button mat-raised-button color="primary" routerLink="/claims/new">
-          <mat-icon>add</mat-icon>
-          New Claim
-        </button>
+        @if (authService.isManager()) {
+          <button mat-raised-button color="primary" routerLink="/claims/new">
+            <mat-icon>add</mat-icon>
+            New Claim
+          </button>
+        }
       </div>
 
       <!-- Filters -->
@@ -211,6 +214,8 @@ import {
   `]
 })
 export class ClaimsListPageComponent implements OnInit {
+  readonly authService = inject(AuthService);
+
   displayedColumns = [
     'referenceNumber',
     'status',
