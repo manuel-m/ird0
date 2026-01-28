@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -36,6 +37,7 @@ public class ClaimsController {
   @Operation(summary = "List claims with filters", operationId = "getClaims")
   @ApiResponse(responseCode = "200", description = "Paginated list of claims")
   @GetMapping("/claims")
+  @PreAuthorize("hasRole('claims-viewer')")
   public ResponseEntity<Page<ClaimSummaryDTO>> getClaims(
       @RequestParam(required = false) UUID policyholderId,
       @RequestParam(required = false) UUID insurerId,
@@ -58,6 +60,7 @@ public class ClaimsController {
   @ApiResponse(responseCode = "200", description = "Claim found")
   @ApiResponse(responseCode = "404", description = "Claim not found")
   @GetMapping("/claims/{id}")
+  @PreAuthorize("hasRole('claims-viewer')")
   public ResponseEntity<ClaimDetailDTO> getClaimById(@PathVariable UUID id) {
     log.debug("Getting claim detail for id: {}", id);
     ClaimDetailDTO claim = claimsService.getClaimById(id);
@@ -70,6 +73,7 @@ public class ClaimsController {
   @Operation(summary = "Create new claim", operationId = "createClaim")
   @ApiResponse(responseCode = "201", description = "Claim created")
   @PostMapping("/claims")
+  @PreAuthorize("hasRole('claims-manager')")
   public ResponseEntity<ClaimDetailDTO> createClaim(
       @Valid @RequestBody CreateClaimRequestDTO request) {
     log.info("Creating new claim of type: {}", request.type());
@@ -80,6 +84,7 @@ public class ClaimsController {
   @Operation(summary = "Update claim status", operationId = "updateClaimStatus")
   @ApiResponse(responseCode = "200", description = "Status updated")
   @PutMapping("/claims/{id}/status")
+  @PreAuthorize("hasRole('claims-manager')")
   public ResponseEntity<ClaimDetailDTO> updateStatus(
       @PathVariable UUID id, @Valid @RequestBody StatusUpdateRequestDTO request) {
     log.info("Updating status for claim {}: {}", id, request.status());
@@ -90,6 +95,7 @@ public class ClaimsController {
   @Operation(summary = "Assign expert to claim", operationId = "assignExpert")
   @ApiResponse(responseCode = "200", description = "Expert assigned")
   @PostMapping("/claims/{id}/expert")
+  @PreAuthorize("hasRole('claims-manager')")
   public ResponseEntity<ClaimDetailDTO> assignExpert(
       @PathVariable UUID id, @Valid @RequestBody ExpertAssignmentRequestDTO request) {
     log.info("Assigning expert {} to claim {}", request.expertId(), id);
@@ -100,6 +106,7 @@ public class ClaimsController {
   @Operation(summary = "Get claim comments", operationId = "getClaimComments")
   @ApiResponse(responseCode = "200", description = "List of comments")
   @GetMapping("/claims/{id}/comments")
+  @PreAuthorize("hasRole('claims-viewer')")
   public ResponseEntity<List<CommentDTO>> getComments(@PathVariable UUID id) {
     log.debug("Getting comments for claim: {}", id);
     List<CommentDTO> comments = claimsService.getComments(id);
@@ -109,6 +116,7 @@ public class ClaimsController {
   @Operation(summary = "Add comment to claim", operationId = "addClaimComment")
   @ApiResponse(responseCode = "200", description = "Comment added")
   @PostMapping("/claims/{id}/comments")
+  @PreAuthorize("hasRole('claims-manager')")
   public ResponseEntity<ClaimDetailDTO> addComment(
       @PathVariable UUID id, @Valid @RequestBody CommentRequestDTO request) {
     log.info("Adding comment to claim: {}", id);
@@ -119,6 +127,7 @@ public class ClaimsController {
   @Operation(summary = "Get claim event history", operationId = "getClaimHistory")
   @ApiResponse(responseCode = "200", description = "Event history")
   @GetMapping("/claims/{id}/history")
+  @PreAuthorize("hasRole('claims-viewer')")
   public ResponseEntity<List<EventDTO>> getHistory(@PathVariable UUID id) {
     log.debug("Getting history for claim: {}", id);
     List<EventDTO> history = claimsService.getHistory(id);
@@ -129,6 +138,7 @@ public class ClaimsController {
   @ApiResponse(responseCode = "200", description = "List of experts")
   @Tag(name = "Actors", description = "Policyholders, insurers, and experts")
   @GetMapping("/experts")
+  @PreAuthorize("hasRole('claims-viewer')")
   public ResponseEntity<List<ActorDTO>> getExperts() {
     log.debug("Getting available experts");
     List<ActorDTO> experts = claimsService.getExperts();
@@ -139,6 +149,7 @@ public class ClaimsController {
   @ApiResponse(responseCode = "200", description = "List of policyholders")
   @Tag(name = "Actors", description = "Policyholders, insurers, and experts")
   @GetMapping("/policyholders")
+  @PreAuthorize("hasRole('claims-viewer')")
   public ResponseEntity<List<ActorDTO>> getPolicyholders() {
     log.debug("Getting policyholders");
     List<ActorDTO> policyholders = claimsService.getPolicyholders();
@@ -149,6 +160,7 @@ public class ClaimsController {
   @ApiResponse(responseCode = "200", description = "List of insurers")
   @Tag(name = "Actors", description = "Policyholders, insurers, and experts")
   @GetMapping("/insurers")
+  @PreAuthorize("hasRole('claims-viewer')")
   public ResponseEntity<List<ActorDTO>> getInsurers() {
     log.debug("Getting insurers");
     List<ActorDTO> insurers = claimsService.getInsurers();
