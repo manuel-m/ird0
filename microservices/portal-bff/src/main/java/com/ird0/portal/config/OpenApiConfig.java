@@ -24,7 +24,8 @@ public class OpenApiConfig {
   @Value("${openapi.server.url:}")
   private String serverUrl;
 
-  @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:http://localhost:8180/realms/ird0}")
+  @Value(
+      "${spring.security.oauth2.resourceserver.jwt.issuer-uri:http://localhost:8180/realms/ird0}")
   private String issuerUri;
 
   @Bean
