@@ -28,6 +28,10 @@ export class AuthService {
     if (!this._isAuthenticated()) return false;
     return this.hasRole('claims-manager') || this.hasRole('claims-admin');
   });
+  readonly isAdmin = computed(() => {
+    if (!this._isAuthenticated()) return false;
+    return this.hasRole('claims-admin');
+  });
 
   constructor(private oauthService: OAuthService) {}
 

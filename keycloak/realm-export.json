@@ -98,62 +98,6 @@
       ]
     }
   },
-  "users": [
-    {
-      "username": "viewer",
-      "email": "viewer@example.com",
-      "emailVerified": true,
-      "enabled": true,
-      "firstName": "View",
-      "lastName": "User",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "viewer",
-          "temporary": false
-        }
-      ],
-      "clientRoles": {
-        "ird0-portal-bff": ["claims-viewer"]
-      }
-    },
-    {
-      "username": "manager",
-      "email": "manager@example.com",
-      "emailVerified": true,
-      "enabled": true,
-      "firstName": "Manager",
-      "lastName": "User",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "manager",
-          "temporary": false
-        }
-      ],
-      "clientRoles": {
-        "ird0-portal-bff": ["claims-manager"]
-      }
-    },
-    {
-      "username": "admin",
-      "email": "admin@example.com",
-      "emailVerified": true,
-      "enabled": true,
-      "firstName": "Admin",
-      "lastName": "User",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "admin",
-          "temporary": false
-        }
-      ],
-      "clientRoles": {
-        "ird0-portal-bff": ["claims-admin"]
-      }
-    }
-  ],
   "scopeMappings": [],
   "clientScopeMappings": {},
   "defaultDefaultClientScopes": [

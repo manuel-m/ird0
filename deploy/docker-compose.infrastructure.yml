@@ -83,8 +83,10 @@ services:
       KC_HOSTNAME_STRICT: false
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_DEV_MODE: ${KEYCLOAK_DEV_MODE:-true}
     volumes:
       - ../keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+      - ../keycloak/init-dev-users.sh:/scripts/init-dev-users.sh:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -94,6 +96,25 @@ services:
       timeout: 10s
       retries: 5
       start_period: 90s
+    networks:
+      - insurance-network
+
+  # Development helper: Initialize test users after Keycloak is ready
+  # This container runs once and exits after creating test users
+  keycloak-init:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: keycloak-init
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_DEV_MODE: ${KEYCLOAK_DEV_MODE:-true}
+    volumes:
+      - ../keycloak/init-dev-users.sh:/scripts/init-dev-users.sh:ro
+    entrypoint: ["/bin/bash", "/scripts/init-dev-users.sh"]
+    restart: "no"
     networks:
       - insurance-network
 
