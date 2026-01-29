@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input } from '@angular/core';
+import { Component, inject, Input, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -16,6 +16,7 @@ import { DateAgoPipe } from '../../../../shared/pipes/date-ago.pipe';
 import { ClaimDetail, CLAIM_TYPE_LABELS, CLAIM_STATUS_LABELS } from '../../../../core/models/claim.model';
 import { StatusUpdateDialogComponent } from '../../components/status-update-dialog/status-update-dialog.component';
 import { AssignExpertDialogComponent } from '../../components/assign-expert-dialog/assign-expert-dialog.component';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-claim-detail-page',
@@ -56,19 +57,21 @@ import { AssignExpertDialogComponent } from '../../components/assign-expert-dial
               </div>
             </div>
           </div>
-          <div class="header-actions">
-            @for (transition of claim.availableTransitions; track transition) {
-              <button mat-raised-button [color]="getTransitionColor(transition)" (click)="openStatusDialog(transition)">
-                {{ getStatusLabel(transition) }}
-              </button>
-            }
-            @if (claim.status === 'QUALIFIED') {
-              <button mat-raised-button color="accent" (click)="openAssignExpertDialog()">
-                <mat-icon>person_add</mat-icon>
-                Assign Expert
-              </button>
-            }
-          </div>
+          @if (authService.isManager()) {
+            <div class="header-actions">
+              @for (transition of claim.availableTransitions; track transition) {
+                <button mat-raised-button [color]="getTransitionColor(transition)" (click)="openStatusDialog(transition)">
+                  {{ getStatusLabel(transition) }}
+                </button>
+              }
+              @if (claim.status === 'QUALIFIED') {
+                <button mat-raised-button color="accent" (click)="openAssignExpertDialog()">
+                  <mat-icon>person_add</mat-icon>
+                  Assign Expert
+                </button>
+              }
+            </div>
+          }
         </div>
 
         <div class="content-grid">
@@ -426,6 +429,7 @@ import { AssignExpertDialogComponent } from '../../components/assign-expert-dial
 export class ClaimDetailPageComponent implements OnInit, OnDestroy {
   @Input() id!: string;
 
+  readonly authService = inject(AuthService);
   history: any[] = [];
 
   constructor(
