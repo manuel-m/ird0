@@ -77,7 +77,6 @@ Constraints:
 - Client roles are the primary mechanism for authorization
 - Realm roles, if used, must be limited to cross-cutting or non-domain-specific concerns
 - User authorization decisions must be enforced only in the BFF
-- Authorization decisions for users must be enforced only in the BFF
 - User access tokens must never be propagated to internal microservices
 - Service-to-service communication must be authenticated
 - The solution must follow Keycloak and OAuth2 best practices

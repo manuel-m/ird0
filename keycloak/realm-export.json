@@ -60,7 +60,7 @@
       "serviceAccountsEnabled": true,
       "authorizationServicesEnabled": false,
       "fullScopeAllowed": true,
-      "secret": "portal-bff-secret",
+      "secret": "dev-bff-secret-change-in-production",
       "protocol": "openid-connect",
       "attributes": {
         "use.refresh.tokens": "true"

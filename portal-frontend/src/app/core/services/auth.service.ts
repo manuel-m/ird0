@@ -1,6 +1,7 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { OAuthService, AuthConfig } from 'angular-oauth2-oidc';
 import { environment } from '../../../environments/environment';
+import { getWindowOrigin } from '../utils/browser.utils';
 
 export interface UserProfile {
   sub: string;
@@ -44,7 +45,7 @@ export class AuthService {
       responseType: environment.auth.responseType,
       requireHttps: environment.auth.requireHttps,
       showDebugInformation: environment.auth.showDebugInformation,
-      silentRefreshRedirectUri: window.location.origin + '/silent-refresh.html',
+      silentRefreshRedirectUri: getWindowOrigin() + '/silent-refresh.html',
       useSilentRefresh: true,
       silentRefreshTimeout: 5000,
       timeoutFactor: 0.75,
@@ -105,7 +106,14 @@ export class AuthService {
     }
 
     try {
-      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      // Decode base64url to standard base64
+      let base64 = accessToken.split('.')[1];
+      base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4 !== 0) {
+        base64 += '=';
+      }
+
+      const payload = JSON.parse(atob(base64));
       const clientRoles = payload?.resource_access?.['ird0-portal-bff']?.roles;
       return Array.isArray(clientRoles) && clientRoles.includes(role);
     } catch {

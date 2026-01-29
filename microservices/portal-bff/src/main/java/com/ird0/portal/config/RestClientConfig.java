@@ -1,6 +1,7 @@
 package com.ird0.portal.config;
 
 import java.time.Duration;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +14,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
+@Slf4j
 @Configuration
 public class RestClientConfig {
 
@@ -47,9 +49,16 @@ public class RestClientConfig {
                     .build();
             OAuth2AuthorizedClient authorizedClient =
                 authorizedClientManager.authorize(authorizeRequest);
-            if (authorizedClient != null) {
-              request.getHeaders().setBearerAuth(authorizedClient.getAccessToken().getTokenValue());
+            if (authorizedClient == null) {
+              log.error(
+                  "Failed to obtain OAuth2 access token for client '{}'. "
+                      + "Check client credentials and Keycloak connectivity.",
+                  CLIENT_REGISTRATION_ID);
+              throw new IllegalStateException(
+                  "Unable to obtain access token for service-to-service authentication. "
+                      + "Verify KEYCLOAK_CLIENT_SECRET matches the Keycloak client configuration.");
             }
+            request.getHeaders().setBearerAuth(authorizedClient.getAccessToken().getTokenValue());
             return execution.execute(request, body);
           });
     }

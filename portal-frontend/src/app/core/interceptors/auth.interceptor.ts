@@ -5,14 +5,14 @@ import { AuthService } from '../services/auth.service';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
 
-  // Only add Authorization header to API requests
-  if (req.url.includes('/api/')) {
+  // Only add Authorization header to API requests that don't already have one
+  if (req.url.startsWith('/api/') && !req.headers.has('Authorization')) {
     const token = authService.getAccessToken();
     if (token) {
       req = req.clone({
         setHeaders: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
     }
   }

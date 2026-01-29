@@ -36,4 +36,3 @@ keys/*
 .env
 
 .idea/
-.idea/compiler.xml

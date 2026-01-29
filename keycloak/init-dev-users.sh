@@ -20,6 +20,7 @@ set -e
 REALM="ird0"
 CLIENT_ID="ird0-portal-bff"
 KCADM="/opt/keycloak/bin/kcadm.sh"
+KEYCLOAK_URL="${KEYCLOAK_INTERNAL_URL:-http://keycloak:8080}"
 
 # Check if running in dev mode
 if [ "${KEYCLOAK_DEV_MODE:-false}" != "true" ]; then
@@ -34,11 +35,11 @@ echo "[init-dev-users] Waiting for Keycloak to be ready..."
 max_attempts=30
 attempt=0
 while [ $attempt -lt $max_attempts ]; do
-    if $KCADM config credentials --server http://localhost:8080 \
+    if $KCADM config credentials --server "$KEYCLOAK_URL" \
         --realm master \
         --user "${KEYCLOAK_ADMIN:-admin}" \
         --password "${KEYCLOAK_ADMIN_PASSWORD:-admin}" 2>/dev/null; then
-        echo "[init-dev-users] Keycloak is ready"
+        echo "[init-dev-users] Keycloak is ready at $KEYCLOAK_URL"
         break
     fi
     attempt=$((attempt + 1))
@@ -60,44 +61,46 @@ create_user() {
     local password=$5
     local role=$6
 
-    echo "[init-dev-users] Creating user: $username"
+    echo "[init-dev-users] Processing user: $username"
 
     # Check if user already exists
     existing_user=$($KCADM get users -r "$REALM" -q "username=$username" 2>/dev/null | grep -c "\"username\"" || true)
     if [ "$existing_user" -gt 0 ]; then
-        echo "[init-dev-users]   User '$username' already exists, skipping"
-        return 0
+        echo "[init-dev-users]   User '$username' already exists"
+    else
+        # Create user
+        echo "[init-dev-users]   Creating user '$username'..."
+        if ! $KCADM create users -r "$REALM" \
+            -s username="$username" \
+            -s email="$email" \
+            -s emailVerified=true \
+            -s enabled=true \
+            -s firstName="$first_name" \
+            -s lastName="$last_name"; then
+            echo "[init-dev-users]   ERROR: Failed to create user '$username'"
+            return 1
+        fi
+
+        # Set password
+        echo "[init-dev-users]   Setting password for '$username'..."
+        if ! $KCADM set-password -r "$REALM" \
+            --username "$username" \
+            --new-password "$password"; then
+            echo "[init-dev-users]   ERROR: Failed to set password for '$username'"
+            return 1
+        fi
     fi
 
-    # Create user
-    $KCADM create users -r "$REALM" \
-        -s username="$username" \
-        -s email="$email" \
-        -s emailVerified=true \
-        -s enabled=true \
-        -s firstName="$first_name" \
-        -s lastName="$last_name"
+    # Always ensure role is assigned (idempotent)
+    echo "[init-dev-users]   Assigning role '$role' to '$username'..."
+    if ! $KCADM add-roles -r "$REALM" \
+        --uusername "$username" \
+        --cclientid "$CLIENT_ID" \
+        --rolename "$role" 2>&1; then
+        echo "[init-dev-users]   WARNING: Role assignment may have failed for '$username'"
+    fi
 
-    # Set password
-    $KCADM set-password -r "$REALM" \
-        --username "$username" \
-        --new-password "$password"
-
-    # Get user ID
-    user_id=$($KCADM get users -r "$REALM" -q "username=$username" --fields id | grep '"id"' | sed 's/.*: "\(.*\)".*/\1/')
-
-    # Get client ID (internal UUID)
-    client_uuid=$($KCADM get clients -r "$REALM" -q "clientId=$CLIENT_ID" --fields id | grep '"id"' | sed 's/.*: "\(.*\)".*/\1/')
-
-    # Get role ID
-    role_id=$($KCADM get clients/$client_uuid/roles/$role -r "$REALM" --fields id | grep '"id"' | sed 's/.*: "\(.*\)".*/\1/')
-
-    # Assign client role to user
-    $KCADM create users/$user_id/role-mappings/clients/$client_uuid -r "$REALM" \
-        -s "id=$role_id" \
-        -s "name=$role"
-
-    echo "[init-dev-users]   Created user '$username' with role '$role'"
+    echo "[init-dev-users]   Done with user '$username'"
 }
 
 # Create test users

@@ -167,6 +167,9 @@ services:
       - INSURERS_SERVICE_URL=http://${INSURERS_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}
       - KEYCLOAK_ISSUER_URI=http://localhost:${KEYCLOAK_HOST_PORT}/realms/ird0
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/ird0/protocol/openid-connect/certs
+      - KEYCLOAK_TOKEN_URI=http://keycloak:8080/realms/ird0/protocol/openid-connect/token
+      # Avoid silence failure
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:?KEYCLOAK_CLIENT_SECRET is required - set in .env file}
       # Swagger aggregation - construct URLs from existing port variables (DRY)
       - SWAGGER_HOST=localhost
       - SWAGGER_PORTAL_BFF_PORT=${PORTAL_BFF_HOST_PORT}

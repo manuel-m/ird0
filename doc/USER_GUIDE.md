@@ -844,7 +844,7 @@ The BFF service needs a client secret to authenticate with Keycloak.
 **Development (default):**
 ```yaml
 # microservices/portal-bff/configs/portal-bff.yml
-client-secret: ${KEYCLOAK_CLIENT_SECRET:portal-bff-secret}
+client-secret: ${KEYCLOAK_CLIENT_SECRET:CHANGE_ME_IN_PRODUCTION}
 ```
 
 **Production:**
@@ -868,7 +868,7 @@ KEYCLOAK_CLIENT_SECRET=<generated-secret>
 | `KEYCLOAK_ADMIN_PASSWORD` | `admin` | Admin console password |
 | `KEYCLOAK_HOST_PORT` | `8180` | External port mapping |
 | `KEYCLOAK_DEV_MODE` | `true` | Enable test user creation |
-| `KEYCLOAK_CLIENT_SECRET` | `portal-bff-secret` | BFF client secret |
+| `KEYCLOAK_CLIENT_SECRET` | `CHANGE_ME_IN_PRODUCTION` | BFF client secret (must rotate for production) |
 
 ### Verifying Keycloak Setup
 
@@ -931,14 +931,14 @@ docker exec portal-bff env | grep KEYCLOAK_CLIENT_SECRET
 curl -X POST http://localhost:8180/realms/ird0/protocol/openid-connect/token \
     -d "grant_type=client_credentials" \
     -d "client_id=ird0-portal-bff" \
-    -d "client_secret=portal-bff-secret"
+    -d "client_secret=CHANGE_ME_IN_PRODUCTION"
 ```
 
 ### Production Security Checklist
 
 - [ ] Set `KEYCLOAK_DEV_MODE=false`
 - [ ] Change `KEYCLOAK_ADMIN_PASSWORD` to a strong password
-- [ ] Generate and set a strong `KEYCLOAK_CLIENT_SECRET`
+- [ ] **Rotate the `KEYCLOAK_CLIENT_SECRET`** (see detailed instructions below)
 - [ ] Enable HTTPS for Keycloak (reverse proxy or KC_HOSTNAME settings)
 - [ ] Configure proper redirect URIs for production domain
 - [ ] Enable brute force protection (already enabled in realm)
@@ -946,6 +946,107 @@ curl -X POST http://localhost:8180/realms/ird0/protocol/openid-connect/token \
 - [ ] Configure password policies in Keycloak
 - [ ] Enable audit logging
 - [ ] Regular backup of Keycloak database (`keycloak_db`)
+
+#### Rotating the Portal BFF Client Secret
+
+**CRITICAL SECURITY REQUIREMENT:** The Keycloak realm export (`keycloak/realm-export.json`) contains a placeholder client secret (`CHANGE_ME_IN_PRODUCTION`) for the `ird0-portal-bff` client. This placeholder is **insecure** and **MUST** be rotated before production deployment.
+
+**Why this is important:**
+- The placeholder secret is committed to version control
+- Anyone with repository access knows the default value
+- Using default secrets in production is a critical security vulnerability
+
+**Step-by-step rotation process:**
+
+**Option 1: Using Keycloak Admin Console (Recommended)**
+
+1. Access the Keycloak Admin Console:
+   ```
+   URL: http://localhost:8180/admin
+   Realm: ird0
+   Credentials: admin / <your-admin-password>
+   ```
+
+2. Navigate to the client:
+   - Left sidebar: **Clients**
+   - Select: **ird0-portal-bff**
+   - Tab: **Credentials**
+
+3. Generate a new secret:
+   - Click **Regenerate secret** button
+   - Or click **Edit** and enter a custom secret (see generation method below)
+   - Copy the new secret value
+
+4. Update the environment variable:
+   ```bash
+   # Edit .env file
+   KEYCLOAK_CLIENT_SECRET=<your-new-secret>
+   ```
+
+5. Restart the Portal BFF service:
+   ```bash
+   docker compose restart portal-bff-svc
+   ```
+
+6. Verify the change:
+   ```bash
+   # Test client credentials flow with new secret
+   curl -X POST http://localhost:8180/realms/ird0/protocol/openid-connect/token \
+       -d "grant_type=client_credentials" \
+       -d "client_id=ird0-portal-bff" \
+       -d "client_secret=<your-new-secret>"
+   ```
+
+**Option 2: Using Keycloak Admin REST API**
+
+1. Get admin access token:
+   ```bash
+   ADMIN_TOKEN=$(curl -X POST http://localhost:8180/realms/master/protocol/openid-connect/token \
+       -d "grant_type=password" \
+       -d "client_id=admin-cli" \
+       -d "username=admin" \
+       -d "password=<admin-password>" | jq -r '.access_token')
+   ```
+
+2. Get the client UUID:
+   ```bash
+   CLIENT_UUID=$(curl -X GET http://localhost:8180/admin/realms/ird0/clients \
+       -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[] | select(.clientId=="ird0-portal-bff") | .id')
+   ```
+
+3. Generate a strong secret:
+   ```bash
+   NEW_SECRET=$(openssl rand -base64 32)
+   echo "Generated secret: $NEW_SECRET"
+   ```
+
+4. Update the client secret:
+   ```bash
+   curl -X POST "http://localhost:8180/admin/realms/ird0/clients/$CLIENT_UUID/client-secret" \
+       -H "Authorization: Bearer $ADMIN_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"value\": \"$NEW_SECRET\"}"
+   ```
+
+5. Update `.env` and restart service (same as Option 1 steps 4-6)
+
+**Secret generation best practices:**
+```bash
+# Generate a strong 32-byte secret (recommended)
+openssl rand -base64 32
+
+# Or use uuidgen for a UUID-based secret
+uuidgen
+
+# Minimum length: 16 characters
+# Use only alphanumeric characters and safe symbols: -_+=
+```
+
+**Development vs Production:**
+- **Development:** The placeholder `CHANGE_ME_IN_PRODUCTION` is acceptable for local testing
+- **Staging/Production:** Always rotate to a unique, strong, randomly-generated secret
+- **CI/CD:** Store secrets in secure vaults (HashiCorp Vault, AWS Secrets Manager, etc.)
+- **Never commit** production secrets to version control
 
 ---
 
@@ -1100,8 +1201,7 @@ done
 
 ### What to Back Up
 
-1. **PostgreSQL databases** (crit
-2. ical) - All application data
+1. **PostgreSQL databases** (critical) - All application data
 2. **SFTP metadata** (`./data/sftp-metadata/`) - Import timestamps
 3. **Configuration files** (in Git, but verify) - Service configuration
 4. **SSH keys** (`./keys/`, secure storage!) - Authentication credentials
@@ -1441,7 +1541,7 @@ docker system prune -a                      # Clean up unused Docker resources
 | `KEYCLOAK_ADMIN_PASSWORD` | admin | Keycloak admin password |
 | `KEYCLOAK_HOST_PORT` | 8180 | Keycloak external port |
 | `KEYCLOAK_DEV_MODE` | true | Create test users on startup |
-| `KEYCLOAK_CLIENT_SECRET` | portal-bff-secret | BFF client secret |
+| `KEYCLOAK_CLIENT_SECRET` | CHANGE_ME_IN_PRODUCTION | BFF client secret (must rotate for production) |
 
 ---
 

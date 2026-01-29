@@ -84,7 +84,7 @@ This feature introduces a **centralized user and role management strategy based 
 
 ---
 
-#### Future Extensions (Out of Scope)
+### Future Extensions (Out of Scope)
 
 * Custom admin UI using Keycloak Admin REST API
 * Advanced permission models (ABAC)

@@ -12,7 +12,7 @@ spring:
         registration:
           portal-bff:
             client-id: ird0-portal-bff
-            client-secret: ${KEYCLOAK_CLIENT_SECRET:portal-bff-secret}
+            client-secret: ${KEYCLOAK_CLIENT_SECRET:CHANGE_ME_IN_PRODUCTION}
             authorization-grant-type: client_credentials
             scope: openid
         provider:

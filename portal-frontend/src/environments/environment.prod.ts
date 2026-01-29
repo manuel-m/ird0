@@ -1,3 +1,5 @@
+import { getWindowOrigin } from '../app/core/utils/browser.utils';
+
 export const environment = {
   production: true,
   // Empty string - API paths are relative, served from same origin or behind reverse proxy
@@ -6,10 +8,12 @@ export const environment = {
   auth: {
     issuer: '/realms/ird0',
     clientId: 'ird0-portal',
-    redirectUri: window.location.origin,
+    get redirectUri(): string {
+      return getWindowOrigin();
+    },
     scope: 'openid profile email',
     responseType: 'code',
     requireHttps: true,
     showDebugInformation: false,
-  }
+  },
 };
