@@ -7,7 +7,9 @@ export const roleGuard = (requiredRole: string): CanActivateFn => {
     const authService = inject(AuthService);
     const router = inject(Router);
 
-    if (authService.hasRole(requiredRole) || authService.hasRole('claims-admin')) {
+    // Role hierarchy is handled by Keycloak composite roles:
+    // claims-admin includes claims-manager, which includes claims-viewer
+    if (authService.hasRole(requiredRole)) {
       return true;
     }
     return router.createUrlTree(['/dashboard']);
