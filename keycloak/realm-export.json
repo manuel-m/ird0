@@ -37,14 +37,16 @@
       "rootUrl": "http://localhost:4200",
       "baseUrl": "/",
       "redirectUris": [
-        "http://localhost:4200/*"
+        "http://localhost:4200/*",
+        "http://localhost:7777/*"
       ],
       "webOrigins": [
-        "http://localhost:4200"
+        "http://localhost:4200",
+        "http://localhost:7777"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:4200/*"
+        "post.logout.redirect.uris": "http://localhost:4200/*++http://localhost:7777/*"
       },
       "protocol": "openid-connect"
     },
