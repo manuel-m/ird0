@@ -1,6 +1,6 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
+import { catchError, EMPTY, throwError } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../services/auth.service';
 
@@ -20,9 +20,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         if (error.status === 0) {
           errorMessage = 'Unable to connect to the server. Please check your connection.';
         } else if (error.status === 401) {
-          // Trigger re-authentication on 401
+          // Trigger re-authentication on 401 and prevent error propagation
           authService.login();
-          errorMessage = 'Session expired. Redirecting to login...';
+          return EMPTY;
         } else if (error.status === 403) {
           errorMessage = 'Access denied. You do not have permission to perform this action.';
           snackBar.open(errorMessage, 'Dismiss', {
