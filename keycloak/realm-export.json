@@ -46,7 +46,7 @@
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:4200/*++http://localhost:7777/*"
+        "post.logout.redirect.uris": "http://localhost:4200##http://localhost:4200/*##http://localhost:7777##http://localhost:7777/*"
       },
       "protocol": "openid-connect"
     },
