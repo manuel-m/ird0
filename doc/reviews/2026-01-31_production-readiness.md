@@ -17,7 +17,7 @@
 | ID | Issue | Category | Complexity | Owner |
 |----|-------|----------|:----------:|:-----:|
 | C2 | Client secret in realm | Security | Low | - |
-| C3 | Missing security headers | Security | Low | - |
+| ~~C3~~ | ~~Missing security headers~~ | ~~Security~~ | ~~Low~~ | Done |
 | C4 | Refresh token revocation | Security | Low | - |
 | C5 | Dev mode enabled | Security | Low | - |
 | C6 | PostgreSQL exposed | Infra | Low | - |
@@ -59,17 +59,18 @@ kcadm.sh update clients/<client-id> -r ird0 -s "secret=${SECRET}"
 
 ---
 
-### C3: Missing Security Headers
+### ~~C3: Missing Security Headers~~ COMPLETED
 
 | Attribute | Value |
 |-----------|-------|
-| **Severity** | CRITICAL |
+| **Severity** | ~~CRITICAL~~ |
 | **Category** | Security |
 | **OWASP** | A05:2021 - Security Misconfiguration |
-| **Location** | `portal-frontend/nginx.conf:28-77` |
+| **Location** | `portal-frontend/nginx.conf:34-47` |
 | **Complexity** | Low |
+| **Status** | **COMPLETED** |
 
-**Remediation:** Add to `server` block:
+**Implemented:** Added security headers to `server` block in nginx.conf:
 
 ```nginx
 # Security Headers
@@ -80,26 +81,16 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
 
 # Content Security Policy
-add_header Content-Security-Policy "
-    default-src 'self';
-    script-src 'self';
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    font-src 'self' https://fonts.gstatic.com;
-    img-src 'self' data:;
-    connect-src 'self';
-    frame-ancestors 'self';
-    form-action 'self';
-    base-uri 'self';
-" always;
+add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; form-action 'self'; base-uri 'self';" always;
 
-# HSTS (enable after HTTPS is configured)
+# HSTS - uncomment after HTTPS is configured
 # add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 ```
 
 **Definition of Done:**
-- [ ] All headers added to nginx.conf
-- [ ] Headers visible in browser DevTools
-- [ ] No console errors from CSP violations
+- [x] All headers added to nginx.conf
+- [ ] Headers visible in browser DevTools (verify after deployment)
+- [ ] No console errors from CSP violations (verify after deployment)
 
 ---
 
@@ -578,7 +569,7 @@ spring:
 PHASE 1: Critical (Pre-Production)     PHASE 2: High (Pre-Launch)
 ├── C1: Rotate secrets                 ├── H1: Configure HTTPS/TLS
 ├── C2: Remove client secret           ├── H2: Harden CORS
-├── C3: Add security headers           ├── H5-H6: Enable TLS everywhere
+├── C3: Add security headers ✓         ├── H5-H6: Enable TLS everywhere
 ├── C4: Enable token revocation        ├── H7: Create prod profiles
 ├── C5: Disable dev mode               ├── H8: Redact stack traces
 ├── C6: Remove PostgreSQL port         ├── H9: Expand E2E tests
@@ -691,7 +682,7 @@ docker logs keycloak 2>&1 | grep -E "(development|production) mode"
 |---|-------|-------------|------|-----------|
 | C1 | Secrets rotated and removed from Git | | | |
 | C2 | Client secret removed from realm export | | | |
-| C3 | Security headers configured | | | |
+| C3 | Security headers configured | Claude | 2026-01-31 | Done |
 | C4 | Refresh token revocation enabled | | | |
 | C5 | Dev mode disabled | | | |
 | C6 | PostgreSQL port removed | | | |

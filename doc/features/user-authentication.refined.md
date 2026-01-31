@@ -4,6 +4,37 @@
 
 The User Authentication and Authorization feature secures the insurance portal using Keycloak as the Identity Provider (IdP) with OpenID Connect. The Angular SPA authenticates users via Keycloak, the Portal BFF enforces authorization on all endpoints, and internal microservices are accessed only by the BFF using service-level credentials.
 
+
+```mermaid
+sequenceDiagram
+    participant User as User (Browser)
+    participant SPA as Angular SPA
+    participant BFF as Portal BFF
+    participant KC as Keycloak
+    participant API as Internal Service
+
+    User->>SPA: Open app
+    SPA->>SPA: initialize AuthService
+    alt Not authenticated
+        SPA->>KC: Start Authorization Code + PKCE
+        KC->>User: Show login, collect credentials
+        KC->>SPA: Return auth code
+        SPA->>KC: Exchange code for tokens
+        KC->>SPA: Return id/access/refresh tokens
+        SPA->>SPA: Store tokens, configure silent refresh
+    end
+    SPA->>BFF: API request with Bearer token
+    BFF->>BFF: Validate JWT (issuer/jwk), extract roles
+    BFF->>BFF: `@PreAuthorize` checks role
+    alt Authorized
+        BFF->>API: Call internal service (client credentials)
+        API->>BFF: Return data
+        BFF->>SPA: Return response
+    else Forbidden
+        BFF->>SPA: 403 Forbidden
+    end
+```
+
 ### Business Value
 
 - **Access Control**: Only authorized users can view and manage claims
