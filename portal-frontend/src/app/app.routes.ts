@@ -1,9 +1,12 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   {
     path: 'dashboard',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/dashboard/pages/dashboard-page/dashboard-page.component').then(
         (m) => m.DashboardPageComponent
@@ -11,6 +14,7 @@ export const routes: Routes = [
   },
   {
     path: 'claims',
+    canActivate: [authGuard],
     children: [
       {
         path: '',
@@ -21,6 +25,7 @@ export const routes: Routes = [
       },
       {
         path: 'new',
+        canActivate: [roleGuard('claims-manager')],
         loadComponent: () =>
           import('./features/claims/pages/claim-create-page/claim-create-page.component').then(
             (m) => m.ClaimCreatePageComponent

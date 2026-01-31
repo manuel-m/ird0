@@ -5,16 +5,14 @@ import com.ird0.directory.model.DirectoryEntry;
 import com.ird0.directory.repository.DirectoryEntryRepository;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class DirectoryEntryService {
 
   private final DirectoryEntryRepository repository;
-
-  public DirectoryEntryService(DirectoryEntryRepository repository) {
-    this.repository = repository;
-  }
 
   public List<DirectoryEntry> getAll() {
     return repository.findAll();

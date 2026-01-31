@@ -26,6 +26,8 @@ springdoc:
     operationsSorter: method
     tagsSorter: alpha
     urls-primary-name: Portal BFF
+    oauth:
+      use-pkce-with-authorization-code-grant: true
   packages-to-scan: com.ird0.portal.controller
   paths-to-match: /api/portal/v1/**
 

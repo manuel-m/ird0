@@ -8,6 +8,8 @@ info:
 servers:
 - url: /
   description: Relative path
+security:
+- oauth2: []
 tags:
 - name: Actors
   description: "Policyholders, insurers, and experts"
@@ -590,10 +592,6 @@ components:
           format: int32
         pageable:
           $ref: "#/components/schemas/PageableObject"
-        first:
-          type: boolean
-        last:
-          type: boolean
         size:
           type: integer
           format: int32
@@ -606,6 +604,10 @@ components:
           format: int32
         sort:
           $ref: "#/components/schemas/SortObject"
+        first:
+          type: boolean
+        last:
+          type: boolean
         numberOfElements:
           type: integer
           format: int32
@@ -638,3 +640,14 @@ components:
           type: boolean
         unsorted:
           type: boolean
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: http://localhost:8180/realms/ird0/protocol/openid-connect/auth
+          tokenUrl: http://localhost:8180/realms/ird0/protocol/openid-connect/token
+          scopes:
+            openid: OpenID Connect
+            profile: User profile
+            email: Email address

@@ -1,0 +1,119 @@
+{
+  "realm": "ird0",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 300,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByUserLifespan": 300,
+  "defaultSignatureAlgorithm": "RS256",
+  "revokeRefreshToken": false,
+  "refreshTokenMaxReuse": 0,
+  "clients": [
+    {
+      "clientId": "ird0-portal",
+      "name": "IRD0 Portal Frontend",
+      "description": "Angular SPA for the insurance portal",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "fullScopeAllowed": true,
+      "rootUrl": "http://localhost:4200",
+      "baseUrl": "/",
+      "redirectUris": [
+        "http://localhost:4200/*",
+        "http://localhost:7777/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200",
+        "http://localhost:7777"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200##http://localhost:4200/*##http://localhost:7777##http://localhost:7777/*"
+      },
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "ird0-portal-bff",
+      "name": "IRD0 Portal BFF Service",
+      "description": "Backend-for-frontend service - validates tokens from portal",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": false,
+      "fullScopeAllowed": true,
+      "secret": "dev-bff-secret-change-in-production",
+      "protocol": "openid-connect",
+      "attributes": {
+        "use.refresh.tokens": "true"
+      }
+    }
+  ],
+  "roles": {
+    "client": {
+      "ird0-portal-bff": [
+        {
+          "name": "claims-viewer",
+          "description": "Can view claims and dashboard",
+          "composite": false
+        },
+        {
+          "name": "claims-manager",
+          "description": "Can view and manage claims (update status, assign experts)",
+          "composite": true,
+          "composites": {
+            "client": {
+              "ird0-portal-bff": ["claims-viewer"]
+            }
+          }
+        },
+        {
+          "name": "claims-admin",
+          "description": "Full administrative access to claims",
+          "composite": true,
+          "composites": {
+            "client": {
+              "ird0-portal-bff": ["claims-manager"]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "scopeMappings": [],
+  "clientScopeMappings": {},
+  "defaultDefaultClientScopes": [
+    "role_list",
+    "profile",
+    "email",
+    "roles",
+    "web-origins",
+    "acr"
+  ],
+  "defaultOptionalClientScopes": [
+    "offline_access",
+    "address",
+    "phone",
+    "microprofile-jwt"
+  ]
+}

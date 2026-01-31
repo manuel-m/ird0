@@ -7,6 +7,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -45,6 +46,13 @@ public class GlobalExceptionHandler {
       IllegalArgumentException ex) {
     log.warn("Illegal argument: {}", ex.getMessage());
     return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
+    log.warn("Access denied: {}", ex.getMessage());
+    return buildErrorResponse(
+        HttpStatus.FORBIDDEN, "You do not have permission to perform this action");
   }
 
   @ExceptionHandler(ServiceUnavailableException.class)
