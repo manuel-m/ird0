@@ -164,151 +164,15 @@ The Portal Frontend Deployment feature packages the Angular SPA as a production-
 
 Location: `portal-frontend/Dockerfile`
 
-```dockerfile
-# Stage 1: Build
-FROM node:22-alpine AS build
-WORKDIR /app
-
-# Enable corepack for pnpm
-RUN corepack enable
-
-# Install dependencies first (layer caching)
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-
-# Copy source and build
-COPY . .
-RUN pnpm build
-
-# Stage 2: Serve
-FROM nginx:alpine
-COPY --from=build /app/dist/portal-frontend/browser /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/nginx.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
-
 ### Nginx Configuration
 
 Location: `portal-frontend/nginx.conf`
 
-```nginx
-worker_processes auto;
-error_log /var/log/nginx/error.log warn;
-pid /var/run/nginx.pid;
-
-events {
-    worker_connections 1024;
-}
-
-http {
-    include /etc/nginx/mime.types;
-    default_type application/octet-stream;
-
-    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
-                    '$status $body_bytes_sent "$http_referer" '
-                    '"$http_user_agent"';
-    access_log /var/log/nginx/access.log main;
-
-    sendfile on;
-    keepalive_timeout 65;
-
-    # Gzip compression
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_types text/plain text/css text/javascript application/javascript
-               application/json application/xml text/xml;
-
-    server {
-        listen 80;
-        server_name _;
-        root /usr/share/nginx/html;
-
-        # Cache hashed assets (immutable)
-        location ~* \.[a-f0-9]{16}\.(js|css)$ {
-            expires 1y;
-            add_header Cache-Control "public, immutable";
-        }
-
-        # No cache for entry points
-        location = /index.html {
-            add_header Cache-Control "no-cache";
-        }
-
-        location = /silent-refresh.html {
-            add_header Cache-Control "no-cache";
-        }
-
-        # API proxy to BFF
-        location /api/ {
-            proxy_pass http://bff:8080/api/;
-            proxy_http_version 1.1;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_connect_timeout 30s;
-            proxy_read_timeout 60s;
-        }
-
-        # Keycloak proxy for OIDC
-        location /realms/ {
-            proxy_pass http://keycloak:8080/realms/;
-            proxy_http_version 1.1;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_buffer_size 128k;
-            proxy_buffers 4 256k;
-            proxy_busy_buffers_size 256k;
-        }
-
-        # SPA fallback - must be last
-        location / {
-            try_files $uri $uri/ /index.html;
-        }
-    }
-}
-```
 
 ### Docker Compose Service
 
 Location: `deploy/docker-compose.apps.yml` (addition)
 
-```yaml
-portal-frontend:
-  build:
-    context: ..
-    dockerfile: portal-frontend/Dockerfile
-  image: portal-frontend
-  restart: unless-stopped
-  ports:
-    - "${PORTAL_FRONTEND_HOST_PORT}:80"
-  deploy:
-    resources:
-      limits:
-        cpus: '0.25'
-        memory: 64M
-      reservations:
-        memory: 32M
-  depends_on:
-    portal-bff:
-      condition: service_healthy
-    keycloak:
-      condition: service_healthy
-  healthcheck:
-    test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
-    interval: 30s
-    timeout: 5s
-    retries: 3
-    start_period: 10s
-  networks:
-    insurance-network:
-      aliases:
-        - ${PORTAL_FRONTEND_SERVICE_HOST}
-```
 
 ### Environment Variables
 
