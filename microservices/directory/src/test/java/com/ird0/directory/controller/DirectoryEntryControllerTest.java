@@ -24,26 +24,28 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(DirectoryEntryController.class)
 @Import(GlobalExceptionHandler.class)
+@ActiveProfiles("test")
 class DirectoryEntryControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
   @Autowired private ObjectMapper objectMapper;
 
-  @MockBean private DirectoryEntryService service;
+  @MockitoBean private DirectoryEntryService service;
 
-  @MockBean private DirectoryEntryMapper mapper;
+  @MockitoBean private DirectoryEntryMapper mapper;
 
-  @MockBean private CsvImportService csvImportService;
+  @MockitoBean private CsvImportService csvImportService;
 
-  @MockBean private ImportAuditService auditService;
+  @MockitoBean private ImportAuditService auditService;
 
   private DirectoryEntry testEntity;
   private DirectoryEntryDTO testDto;

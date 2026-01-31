@@ -1,0 +1,13 @@
+# Production profile - disables development features
+
+logging:
+  level:
+    root: WARN
+    com.ird0: INFO
+    org.springframework: WARN
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

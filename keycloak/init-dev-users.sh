@@ -6,7 +6,7 @@
 # This script is NOT meant for production use.
 #
 # Usage:
-#   Automatic: Set KEYCLOAK_DEV_MODE=true in docker-compose environment
+#   Automatic: Set ENV_MODE=dev in .env (KEYCLOAK_DEV_MODE is derived)
 #   Manual:    docker exec -it keycloak /scripts/init-dev-users.sh
 #
 # Prerequisites:
@@ -23,8 +23,8 @@ KCADM="/opt/keycloak/bin/kcadm.sh"
 KEYCLOAK_URL="${KEYCLOAK_INTERNAL_URL:-http://keycloak:8080}"
 
 # Check if running in dev mode
-if [ "${KEYCLOAK_DEV_MODE:-false}" != "true" ]; then
-    echo "[init-dev-users] KEYCLOAK_DEV_MODE is not 'true', skipping test user creation"
+if [ "${KEYCLOAK_DEV_MODE:-production}" != "dev" ]; then
+    echo "[init-dev-users] KEYCLOAK_DEV_MODE is not 'dev', skipping test user creation"
     exit 0
 fi
 

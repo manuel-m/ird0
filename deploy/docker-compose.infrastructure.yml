@@ -83,7 +83,8 @@ services:
       KC_HOSTNAME_STRICT: false
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
-      KEYCLOAK_DEV_MODE: ${KEYCLOAK_DEV_MODE:-true}
+      # Derived from ENV_MODE - creates test users only in dev mode
+      KEYCLOAK_DEV_MODE: ${ENV_MODE:?ENV_MODE is required (dev|production)}
     volumes:
       - ../keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
       - ../keycloak/init-dev-users.sh:/scripts/init-dev-users.sh:ro
@@ -110,7 +111,8 @@ services:
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
-      KEYCLOAK_DEV_MODE: ${KEYCLOAK_DEV_MODE:-true}
+      # Derived from ENV_MODE - creates test users only in dev mode
+      KEYCLOAK_DEV_MODE: ${ENV_MODE:?ENV_MODE is required (dev|production)}
     volumes:
       - ../keycloak/init-dev-users.sh:/scripts/init-dev-users.sh:ro
     entrypoint: ["/bin/bash", "/scripts/init-dev-users.sh"]

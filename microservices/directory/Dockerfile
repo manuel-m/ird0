@@ -39,6 +39,9 @@ COPY --from=build /app/microservices/directory/target/directory-1.0.0-exec.jar a
 # Copy common configuration
 COPY microservices/directory/configs/application.yml application.yml
 
+# Copy production profile configuration
+COPY microservices/directory/configs/application-production.yml application-production.yml
+
 # Copy instance-specific configuration
 COPY microservices/directory/configs/${APP_YML} instance.yml
 

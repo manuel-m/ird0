@@ -30,6 +30,8 @@ services:
       retries: 3
       start_period: 40s
     environment:
+      - ENV_MODE=${ENV_MODE:?ENV_MODE is required (dev|production)}
+      - SPRING_PROFILES_ACTIVE=${ENV_MODE}
       - SERVER_PORT=${SERVICE_INTERNAL_PORT}
       - OPENAPI_SERVER_URL=http://localhost:${INCIDENT_HOST_PORT}
       - POSTGRES_HOST=${POSTGRES_HOST}
@@ -74,6 +76,8 @@ services:
       retries: 3
       start_period: 40s
     environment:
+      - ENV_MODE=${ENV_MODE:?ENV_MODE is required (dev|production)}
+      - SPRING_PROFILES_ACTIVE=${ENV_MODE}
       - SERVER_PORT=${SERVICE_INTERNAL_PORT}
       - OPENAPI_SERVER_URL=http://localhost:${NOTIFICATION_HOST_PORT}
       - POSTGRES_HOST=${POSTGRES_HOST}
@@ -159,6 +163,8 @@ services:
       retries: 3
       start_period: 40s
     environment:
+      - ENV_MODE=${ENV_MODE:?ENV_MODE is required (dev|production)}
+      - SPRING_PROFILES_ACTIVE=${ENV_MODE}
       - SERVER_PORT=${SERVICE_INTERNAL_PORT}
       - OPENAPI_SERVER_URL=http://localhost:${PORTAL_BFF_HOST_PORT}
       - INCIDENT_SERVICE_URL=http://${INCIDENT_SERVICE_HOST}:${SERVICE_INTERNAL_PORT}

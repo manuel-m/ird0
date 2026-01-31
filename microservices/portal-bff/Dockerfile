@@ -40,6 +40,9 @@ COPY --from=build /app/microservices/portal-bff/target/portal-bff-1.0.0-exec.jar
 # Copy common configuration
 COPY microservices/portal-bff/configs/application.yml application.yml
 
+# Copy production profile configuration
+COPY microservices/portal-bff/configs/application-production.yml application-production.yml
+
 # Copy instance-specific configuration
 COPY microservices/portal-bff/configs/${APP_YML} instance.yml
 

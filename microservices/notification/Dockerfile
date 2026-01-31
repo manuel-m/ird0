@@ -40,6 +40,9 @@ COPY --from=build /app/microservices/notification/target/notification-1.0.0-exec
 # Copy common configuration
 COPY microservices/notification/configs/application.yml application.yml
 
+# Copy production profile configuration
+COPY microservices/notification/configs/application-production.yml application-production.yml
+
 # Copy instance-specific configuration
 COPY microservices/notification/configs/${APP_YML} instance.yml
 

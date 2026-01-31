@@ -40,6 +40,9 @@ COPY --from=build /app/microservices/incident/target/incident-1.0.0-exec.jar app
 # Copy common configuration
 COPY microservices/incident/configs/application.yml application.yml
 
+# Copy production profile configuration
+COPY microservices/incident/configs/application-production.yml application-production.yml
+
 # Copy instance-specific configuration
 COPY microservices/incident/configs/${APP_YML} instance.yml
 
