@@ -129,6 +129,23 @@ Detailed documentation for each major feature:
   - Performance problems
   - Error recovery and retry logic
 
+## Production Deployment
+
+Comprehensive guides for deploying the IRD0 platform to production:
+
+- [Deployment Overview](deployment/README.md) - Index and implementation timeline
+- [GitLab Setup](deployment/gitlab-setup.md) - Self-hosted GitLab installation
+- [GitLab CI/CD](deployment/gitlab-ci-guide.md) - Pipeline configuration
+- [Coolify Setup](deployment/coolify-setup.md) - Coolify installation and configuration
+- [Coolify Deployment](deployment/coolify-app-deployment.md) - Deploying IRD0 to Coolify
+- [Docker Compose Notes](deployment/compose-coolify-notes.md) - Compose file adaptations
+- [Vault Production](deployment/vault-production.md) - Production Vault setup
+- [Testing Requirements](deployment/testing-requirements.md) - Test coverage requirements
+- [Critical Tests Spec](deployment/critical-tests-spec.md) - Test specifications
+- [Integration Tests](deployment/integration-tests.md) - E2E test scenarios
+- [Security Checklist](deployment/security-checklist.md) - Pre-deployment verification
+- [Operations Runbook](deployment/runbook.md) - Production operations guide
+
 ## Migration Guides
 
 - [UUID Migration](migrations/uuid-migration.md) - Long to UUID primary key migration
@@ -185,7 +202,7 @@ Detailed documentation for each major feature:
 - **Operations Team**: Start with [USER_GUIDE.md](USER_GUIDE.md) → [troubleshooting.md](topics/troubleshooting.md)
 - **Security Admin**: See [vault-ssh-ca.md](topics/vault-ssh-ca.md) → [ssh-keys.md](topics/ssh-keys.md) → [configuration.md](topics/configuration.md)
 - **Database Admin**: See [database.md](topics/database.md) → [USER_GUIDE.md](USER_GUIDE.md)
-- **DevOps Engineer**: See [docker.md](topics/docker.md) → [monitoring.md](topics/monitoring.md) → [vault-ssh-ca.md](topics/vault-ssh-ca.md)
+- **DevOps Engineer**: See [docker.md](topics/docker.md) → [monitoring.md](topics/monitoring.md) → [vault-ssh-ca.md](topics/vault-ssh-ca.md) → [deployment/](deployment/)
 
 ### By Task
 
@@ -196,7 +213,7 @@ Detailed documentation for each major feature:
 - **Setting up Vault SSH CA**: [topics/vault-ssh-ca.md](topics/vault-ssh-ca.md) + [USER_GUIDE.md](USER_GUIDE.md#hashicorp-vault-integration)
 - **Managing SSH keys (static)**: [topics/ssh-keys.md](topics/ssh-keys.md)
 - **Troubleshooting database issues**: [topics/database.md](topics/database.md) + [topics/troubleshooting.md](topics/troubleshooting.md)
-- **Deploying to production**: [USER_GUIDE.md](USER_GUIDE.md) → [ARCHITECTURE.md](ARCHITECTURE.md)
+- **Deploying to production**: [deployment/README.md](deployment/README.md) → [deployment/coolify-app-deployment.md](deployment/coolify-app-deployment.md) → [deployment/security-checklist.md](deployment/security-checklist.md)
 - **Monitoring services**: [topics/monitoring.md](topics/monitoring.md)
 - **Monitoring certificate auth**: [topics/vault-ssh-ca.md](topics/vault-ssh-ca.md#audit-logging)
 - **Backing up data**: [USER_GUIDE.md](USER_GUIDE.md#backup-and-restore) + [topics/database.md](topics/database.md)
@@ -224,4 +241,4 @@ When updating documentation:
 - Follow the existing structure and style
 - Test all internal links after changes
 
-Last Updated: 2026-01-22
+Last Updated: 2026-02-01
