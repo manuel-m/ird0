@@ -49,6 +49,40 @@ The IRD0 platform integrates HashiCorp Vault SSH Secrets Engine in CA (Certifica
 
 ### Certificate Flow
 
+```mermaid
+sequenceDiagram
+    participant PS as Policyholders Service
+    participant Vault as HashiCorp Vault
+    participant SFTP as SFTP Server
+
+    Note over PS: Connection needed
+
+    rect rgb(240, 248, 255)
+        Note over PS,Vault: 1. Certificate Request
+        PS->>PS: Generate RSA-4096 key pair in memory
+        PS->>Vault: POST /ssh-client-signer/sign/directory-service
+        Note right of PS: public_key, valid_principals,<br/>ttl: 900s, cert_type: user
+        Vault->>Vault: Sign with CA private key
+        Vault-->>PS: signed_key + serial_number
+        PS->>PS: Cache SignedCertificate
+    end
+
+    rect rgb(255, 248, 240)
+        Note over PS,SFTP: 2. SFTP Authentication
+        PS->>SFTP: SSH connection with certificate
+        SFTP->>SFTP: Step 1: Verify certificate format
+        SFTP->>SFTP: Step 2: Verify CA signature
+        SFTP->>SFTP: Step 3: Verify validity period
+        SFTP->>SFTP: Step 4: Verify principal matches
+        SFTP->>SFTP: Step 5: Verify USER cert type
+        SFTP-->>PS: Authentication SUCCESS
+        SFTP->>SFTP: [AUDIT] AUTH_SUCCESS logged
+    end
+
+    PS->>SFTP: Download CSV files
+    SFTP-->>PS: File data
+```
+
 ```
 1. CERTIFICATE REQUEST (Policyholders Service)
    +---------------------------------------------------------+

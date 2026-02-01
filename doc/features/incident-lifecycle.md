@@ -88,6 +88,29 @@ The Incident Lifecycle feature manages insurance claims through a defined state 
 
 ### State Diagram
 
+```mermaid
+stateDiagram-v2
+    [*] --> DECLARED : Create Incident
+
+    DECLARED --> QUALIFIED : qualify
+    DECLARED --> ABANDONED : abandon
+
+    QUALIFIED --> IN_PROGRESS : assign expert
+    QUALIFIED --> ABANDONED : abandon
+
+    IN_PROGRESS --> RESOLVED : resolve
+    IN_PROGRESS --> ABANDONED : abandon
+
+    RESOLVED --> [*]
+    ABANDONED --> [*]
+
+    note right of DECLARED : Initial state\nAwaiting qualification
+    note right of QUALIFIED : Ready for expert\nassignment
+    note right of IN_PROGRESS : Assessment\nunderway
+    note left of RESOLVED : Terminal\nClaim closed
+    note left of ABANDONED : Terminal\nClaim withdrawn
+```
+
 ```
                          ┌───────────────────────────────────────┐
                          │                                       │

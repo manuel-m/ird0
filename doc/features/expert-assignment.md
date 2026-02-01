@@ -113,6 +113,26 @@ The Expert Assignment feature enables assigning qualified experts to insurance i
 
 ### Status Transitions
 
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING : Create assignment
+
+    PENDING --> ACCEPTED : Expert accepts
+    PENDING --> CANCELLED : Cancel
+
+    ACCEPTED --> IN_PROGRESS : Start assessment
+    ACCEPTED --> CANCELLED : Cancel
+
+    IN_PROGRESS --> COMPLETED : Finish assessment
+    IN_PROGRESS --> CANCELLED : Cancel
+
+    COMPLETED --> [*]
+    CANCELLED --> [*]
+
+    note right of PENDING : Awaiting expert\nresponse
+    note right of IN_PROGRESS : On-site or\nremote assessment
+```
+
 ```
 PENDING ──► ACCEPTED ──► IN_PROGRESS ──► COMPLETED
    │            │              │
@@ -161,6 +181,37 @@ CREATE INDEX idx_expert_assignments_expert ON expert_assignments(expert_id);
 ---
 
 ## Validation Flow
+
+```mermaid
+flowchart TB
+    REQ[Assignment Request]
+    V1{Incident exists?}
+    V2{Status QUALIFIED\nor IN_PROGRESS?}
+    V3{Expert exists\nin directory?}
+    V4{Not already\nassigned?}
+    CREATE[Create Assignment\nRecord Event\nSend Notification]
+
+    E1[404 Not Found]
+    E2[400 Invalid State]
+    E3[404 Expert Not Found]
+    E4[409 Conflict]
+
+    REQ --> V1
+    V1 -->|No| E1
+    V1 -->|Yes| V2
+    V2 -->|No| E2
+    V2 -->|Yes| V3
+    V3 -->|No| E3
+    V3 -->|Yes| V4
+    V4 -->|No| E4
+    V4 -->|Yes| CREATE
+
+    style E1 fill:#ffcdd2
+    style E2 fill:#ffcdd2
+    style E3 fill:#ffcdd2
+    style E4 fill:#ffcdd2
+    style CREATE fill:#c8e6c9
+```
 
 ```
 Assignment Request

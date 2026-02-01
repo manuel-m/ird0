@@ -4,6 +4,37 @@
 
 This guide provides diagnostic procedures and solutions for common issues in the IRD0 system. Organized by symptom for quick reference.
 
+```mermaid
+flowchart TB
+    START[Issue Detected]
+
+    START --> Q1{Service\nstartup issue?}
+    Q1 -->|Yes| A1[Check container status\ndocker compose ps]
+    Q1 -->|No| Q2{Database\nconnection issue?}
+
+    Q2 -->|Yes| A2[Check PostgreSQL health\npg_isready]
+    Q2 -->|No| Q3{SFTP import\nfailing?}
+
+    Q3 -->|Yes| A3[Check SFTP logs\nTest connection manually]
+    Q3 -->|No| Q4{Performance\nissue?}
+
+    Q4 -->|Yes| A4[Check JVM metrics\nActuator endpoints]
+    Q4 -->|No| A5[Check application logs\ndocker compose logs]
+
+    A1 --> R1[View startup logs\nCheck config files]
+    A2 --> R2[Verify credentials\nCheck network]
+    A3 --> R3[Verify SSH keys\nCheck file format]
+    A4 --> R4[Monitor memory/CPU\nTune pool settings]
+    A5 --> R5[Search for ERROR\nException traces]
+
+    style START fill:#ffecb3
+    style A1 fill:#e3f2fd
+    style A2 fill:#e3f2fd
+    style A3 fill:#e3f2fd
+    style A4 fill:#e3f2fd
+    style A5 fill:#e3f2fd
+```
+
 **Diagnostic Tools:**
 - Docker logs: `docker compose logs`
 - Health checks: `curl http://localhost:port/actuator/health`

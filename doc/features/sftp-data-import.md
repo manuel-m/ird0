@@ -77,6 +77,85 @@ The SFTP Data Import feature provides automated synchronization of directory dat
 
 ### Data Flow
 
+```mermaid
+flowchart TB
+    EXT[External CSV Producer]
+    SFTP[(SFTP Server\n:2222)]
+    SVC[Policyholders Service\n:8081]
+    META[(MetadataStore)]
+    DB[(PostgreSQL\npolicyholders_db)]
+
+    EXT -->|Upload via SFTP| SFTP
+
+    subgraph polling["Polling Loop (every 2 min)"]
+        SVC -->|List files| SFTP
+        SVC -->|Check timestamp| META
+    end
+
+    SVC -->|Download| SFTP
+
+    subgraph processing["Row Processing"]
+        direction TB
+        PARSE[Parse CSV]
+        CHECK{Email exists?}
+        INSERT[INSERT new]
+        COMPARE{Fields changed?}
+        UPDATE[UPDATE changed]
+        SKIP[SKIP unchanged]
+
+        PARSE --> CHECK
+        CHECK -->|No| INSERT
+        CHECK -->|Yes| COMPARE
+        COMPARE -->|Yes| UPDATE
+        COMPARE -->|No| SKIP
+    end
+
+    SVC --> processing
+    INSERT & UPDATE --> DB
+    SVC -->|Store timestamp| META
+
+    style polling fill:#e3f2fd
+    style processing fill:#fff3e0
+```
+
+### Two-Level Change Detection
+
+```mermaid
+flowchart LR
+    subgraph level1["Level 1: File-Level"]
+        F1[Get file timestamp]
+        F2[Compare with stored]
+        F3{Changed?}
+        F4[Process file]
+        F5[Skip file]
+
+        F1 --> F2 --> F3
+        F3 -->|Yes| F4
+        F3 -->|No| F5
+    end
+
+    subgraph level2["Level 2: Row-Level"]
+        R1[Parse row]
+        R2[findByEmail]
+        R3{Exists?}
+        R4[INSERT]
+        R5{Fields differ?}
+        R6[UPDATE]
+        R7[SKIP]
+
+        R1 --> R2 --> R3
+        R3 -->|No| R4
+        R3 -->|Yes| R5
+        R5 -->|Yes| R6
+        R5 -->|No| R7
+    end
+
+    F4 --> level2
+
+    style level1 fill:#e8f5e9
+    style level2 fill:#fff3e0
+```
+
 ```
 ┌─────────────────┐
 │  External CSV   │

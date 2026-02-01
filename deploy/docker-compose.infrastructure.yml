@@ -63,7 +63,8 @@ services:
     image: quay.io/keycloak/keycloak:26.0
     container_name: keycloak
     restart: unless-stopped
-    command: start-dev --import-realm
+    # Entrypoint script switches between dev/production mode based on ENV_MODE
+    entrypoint: ["/bin/bash", "/scripts/docker-entrypoint.sh"]
     ports:
       - "${KEYCLOAK_HOST_PORT:-8180}:8080"
     deploy:
@@ -74,20 +75,22 @@ services:
         reservations:
           memory: 256M
     environment:
+      ENV_MODE: ${ENV_MODE:?ENV_MODE is required (dev|production)}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KC_HOSTNAME: http://localhost:${KEYCLOAK_HOST_PORT}
-      KC_HOSTNAME_ADMIN: http://localhost:${KEYCLOAK_HOST_PORT}
-      KC_HOSTNAME_STRICT: false
+      # Hostname config - adjusted by entrypoint based on ENV_MODE
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-http://localhost:${KEYCLOAK_HOST_PORT}}
+      KC_HOSTNAME_ADMIN: ${KEYCLOAK_HOSTNAME:-http://localhost:${KEYCLOAK_HOST_PORT}}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       # Derived from ENV_MODE - creates test users only in dev mode
-      KEYCLOAK_DEV_MODE: ${ENV_MODE:?ENV_MODE is required (dev|production)}
+      KEYCLOAK_DEV_MODE: ${ENV_MODE}
     volumes:
       - ../keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
       - ../keycloak/init-dev-users.sh:/scripts/init-dev-users.sh:ro
+      - ../keycloak/docker-entrypoint.sh:/scripts/docker-entrypoint.sh:ro
     depends_on:
       postgres:
         condition: service_healthy

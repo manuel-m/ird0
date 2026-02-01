@@ -183,6 +183,49 @@ CREATE INDEX idx_directory_entry_type ON directory_entry(type);
 
 A single Directory Service codebase is deployed four times with different configurations:
 
+```mermaid
+flowchart TB
+    subgraph codebase["Single Codebase"]
+        CODE[Directory Service\nJava/Spring Boot]
+    end
+
+    subgraph configs["Instance Configurations"]
+        C1[policyholders.yml]
+        C2[experts.yml]
+        C3[providers.yml]
+        C4[insurers.yml]
+    end
+
+    subgraph instances["Running Instances"]
+        I1["Policyholders\n:8081"]
+        I2["Experts\n:8082"]
+        I3["Providers\n:8083"]
+        I4["Insurers\n:8084"]
+    end
+
+    subgraph databases["Isolated Databases"]
+        DB1[(policyholders_db)]
+        DB2[(experts_db)]
+        DB3[(providers_db)]
+        DB4[(insurers_db)]
+    end
+
+    CODE --> C1 & C2 & C3 & C4
+    C1 --> I1
+    C2 --> I2
+    C3 --> I3
+    C4 --> I4
+    I1 --> DB1
+    I2 --> DB2
+    I3 --> DB3
+    I4 --> DB4
+
+    style codebase fill:#e3f2fd
+    style configs fill:#fff3e0
+    style instances fill:#e8f5e9
+    style databases fill:#fce4ec
+```
+
 ```
                 ┌─────────────────┐
                 │ Directory       │

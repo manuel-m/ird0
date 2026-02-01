@@ -153,6 +153,54 @@ The Webhook Notifications feature provides reliable event dispatch to external s
 
 ### Status Flow
 
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING : Create notification
+
+    PENDING --> SENT : Dispatch attempt
+    SENT --> DELIVERED : HTTP 2xx
+    SENT --> PENDING : HTTP 5xx / Timeout\n(retry with backoff)
+    SENT --> FAILED : HTTP 4xx (no retry)
+
+    PENDING --> FAILED : Max retries exhausted
+
+    DELIVERED --> [*]
+    FAILED --> [*]
+
+    note right of PENDING : Awaiting dispatch\nor scheduled retry
+    note right of SENT : Request sent\nawaiting response
+    note left of DELIVERED : Success\nHTTP 2xx received
+    note left of FAILED : All retries failed\nor client error
+```
+
+### Retry Sequence
+
+```mermaid
+sequenceDiagram
+    participant NS as Notification Service
+    participant WH as Webhook Endpoint
+
+    NS->>WH: POST (attempt 1)
+    WH--xNS: 503 Service Unavailable
+
+    Note over NS: Wait 1s (2^0 * 1000ms)
+
+    NS->>WH: POST (attempt 2)
+    WH--xNS: Timeout
+
+    Note over NS: Wait 2s (2^1 * 1000ms)
+
+    NS->>WH: POST (attempt 3)
+    WH--xNS: 500 Internal Error
+
+    Note over NS: Wait 4s (2^2 * 1000ms)
+
+    NS->>WH: POST (attempt 4)
+    WH-->>NS: 200 OK
+
+    Note over NS: Mark as DELIVERED
+```
+
 ```
 ┌─────────┐   Immediate     ┌──────┐   HTTP 2xx   ┌──────────┐
 │ PENDING ├───────────────►│ SENT ├─────────────►│DELIVERED │

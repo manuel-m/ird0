@@ -15,6 +15,35 @@ The IRD0 system uses YAML-based layered configuration with Spring Boot's externa
 
 ### Three-Layer Configuration
 
+```mermaid
+flowchart TB
+    subgraph "Layer 1: Common"
+        A[application.yml]
+    end
+
+    subgraph "Layer 2: Instance-Specific"
+        B[policyholders.yml]
+        C[experts.yml]
+        D[providers.yml]
+        E[insurers.yml]
+    end
+
+    subgraph "Layer 3: Runtime"
+        F[Environment Variables]
+        G[Docker Compose env]
+        H[.env file]
+    end
+
+    A --> B & C & D & E
+    B & C & D & E --> F
+    G --> F
+    H --> G
+    F --> I[Final Configuration]
+
+    style A fill:#e1f5fe
+    style I fill:#c8e6c9
+```
+
 ```
 Layer 1: application.yml (Common)
          ↓ (shared settings)

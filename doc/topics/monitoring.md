@@ -11,6 +11,43 @@ The IRD0 system uses Spring Boot Actuator for production-ready monitoring, healt
 - Structured logging (SLF4J + Logback)
 - Docker Compose log aggregation
 
+## Monitoring Architecture
+
+```mermaid
+flowchart TB
+    subgraph services["Microservices"]
+        S1[Policyholders :8081]
+        S2[Experts :8082]
+        S3[Incident :8085]
+        S4[SFTP Server :9090]
+    end
+
+    subgraph actuator["Spring Boot Actuator"]
+        H["actuator/health"]
+        M["actuator/metrics"]
+        I["actuator/info"]
+    end
+
+    subgraph indicators["Health Indicators"]
+        DB[(Database\nConnectivity)]
+        DISK[Disk Space]
+        PING[Application\nResponsiveness]
+    end
+
+    subgraph metrics["Metrics Categories"]
+        JVM[JVM Memory\nThreads, GC]
+        HTTP[HTTP Requests\nLatency, Status]
+        POOL[HikariCP\nConnections]
+    end
+
+    S1 & S2 & S3 & S4 --> actuator
+    H --> indicators
+    M --> metrics
+
+    style services fill:#e3f2fd
+    style actuator fill:#fff3e0
+```
+
 ## Actuator Endpoints
 
 ### Enabled Endpoints

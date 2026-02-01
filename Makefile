@@ -39,13 +39,14 @@ java-verify \
 test-data-build \
 test-data-inject \
 smoke-test-build \
-smoke-test
+smoke-test \
+docker-prune
 
 all: restart
 
 restart: stop docker-build setup-dirs core-start vault-init start-rest front-build
 
-reinit: stop-rm-volumes docker-build setup-dirs core-start vault-init start-rest
+reinit: docker-prune docker-build setup-dirs core-start vault-init start-rest
 
 apps-restart: apps-stop java-verify apps-build apps-start
 
@@ -78,6 +79,14 @@ setup-dirs:
 
 stop-rm-volumes:
 	docker compose -p $(PROJECT_NAME) down -v --remove-orphans
+
+docker-prune: stop-rm-volumes
+	@echo "Pruning Docker resources (containers, volumes, networks, build cache)..."
+	docker container prune -f
+	docker volume prune -f
+	docker network prune -f
+	docker builder prune -f
+	@echo "Docker resources pruned"
 
 stop:
 	docker compose -p $(PROJECT_NAME) down

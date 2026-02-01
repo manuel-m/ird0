@@ -10,6 +10,29 @@ The project uses **SpringDoc OpenAPI** to:
 
 ## Architecture
 
+```mermaid
+flowchart TB
+    subgraph buildtime["BUILD TIME (mvn verify)"]
+        direction TB
+        A["Controller Annotations<br/>@Tag, @Operation, @ApiResponse"]
+        B["springdoc-openapi-maven-plugin"]
+        C["Generated YAML spec<br/>microservices/{service}/openapi/*.yaml"]
+        A --> B --> C
+    end
+
+    subgraph runtime["RUNTIME (docker compose up)"]
+        direction LR
+        D["/swagger-ui.html<br/>Interactive docs"]
+        E["/v3/api-docs.yaml<br/>OpenAPI YAML"]
+        F["/v3/api-docs<br/>OpenAPI JSON"]
+    end
+
+    C -.->|"serves"| runtime
+
+    style buildtime fill:#fff3e0
+    style runtime fill:#e8f5e9
+```
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    BUILD TIME (mvn verify)                       │

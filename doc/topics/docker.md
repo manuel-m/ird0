@@ -18,6 +18,29 @@ The IRD0 system uses Docker multi-stage builds with optimized layer caching to m
 
 All services use a consistent two-stage Dockerfile pattern:
 
+```mermaid
+flowchart LR
+    subgraph stage1["Stage 1: Build (Maven + JDK 21)"]
+        direction TB
+        A1[Copy POM files] --> A2[Download dependencies\n**cached layer**]
+        A2 --> A3[Copy source code]
+        A3 --> A4[Compile & package]
+        A4 --> JAR[app.jar]
+    end
+
+    subgraph stage2["Stage 2: Runtime (JRE 21 Alpine)"]
+        direction TB
+        B1[Copy JAR from build] --> B2[Copy config files]
+        B2 --> B3[ENTRYPOINT java -jar]
+    end
+
+    JAR --> B1
+
+    style stage1 fill:#fff3e0
+    style stage2 fill:#e8f5e9
+    style JAR fill:#ffecb3
+```
+
 ```
 Stage 1: Build (Maven + JDK 21)
 ├── Copy POM files

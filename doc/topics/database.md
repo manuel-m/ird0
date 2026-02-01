@@ -16,6 +16,40 @@ The IRD0 system uses PostgreSQL 16 as its relational database, with a multi-data
 
 ### Database Architecture
 
+```mermaid
+flowchart TB
+    subgraph pg["PostgreSQL Container (postgres:16-alpine)"]
+        direction TB
+        PG[(PostgreSQL\nPort: 5432)]
+        DB1[(policyholders_db)]
+        DB2[(experts_db)]
+        DB3[(providers_db)]
+        DB4[(insurers_db)]
+        DB5[(incidents_db)]
+        DB6[(notifications_db)]
+    end
+
+    VOL[(postgres-data\nDocker Volume)]
+
+    S1[Policyholders Service\n:8081]
+    S2[Experts Service\n:8082]
+    S3[Providers Service\n:8083]
+    S4[Insurers Service\n:8084]
+    S5[Incident Service\n:8085]
+    S6[Notification Service\n:8086]
+
+    VOL -.-> pg
+    S1 --> DB1
+    S2 --> DB2
+    S3 --> DB3
+    S4 --> DB4
+    S5 --> DB5
+    S6 --> DB6
+
+    style pg fill:#e3f2fd
+    style VOL fill:#fff3e0
+```
+
 ```
 PostgreSQL Container (postgres:16-alpine)
   Port: 5432

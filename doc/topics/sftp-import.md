@@ -15,6 +15,47 @@ The Policyholders service includes an automated SFTP polling system that imports
 
 ## Data Flow
 
+```mermaid
+sequenceDiagram
+    participant EXT as External CSV Producer
+    participant SFTP as SFTP Server :2222
+    participant SVC as Policyholders Service
+    participant META as MetadataStore
+    participant DB as PostgreSQL
+
+    EXT->>SFTP: Upload CSV via SFTP
+
+    loop Every 2 minutes
+        SVC->>SFTP: Poll for *.csv files
+        SFTP-->>SVC: File list with timestamps
+
+        SVC->>META: Get stored timestamp
+        META-->>SVC: Last processed timestamp
+
+        alt File unchanged (timestamp <= stored)
+            SVC->>SVC: Skip file
+        else File changed or new
+            SVC->>SFTP: Download file
+            SFTP-->>SVC: CSV content
+
+            loop For each row
+                SVC->>DB: findByEmail(email)
+                alt Not found
+                    SVC->>DB: INSERT (new)
+                else Found + fields changed
+                    SVC->>DB: UPDATE (updated)
+                else Found + unchanged
+                    SVC->>SVC: SKIP (unchanged)
+                end
+            end
+
+            SVC->>META: Store new timestamp
+            SVC->>SVC: Delete local file
+            SVC->>SVC: Log ImportResult
+        end
+    end
+```
+
 ```
 SFTP Server (port 2222, *.csv files)
         ↓
